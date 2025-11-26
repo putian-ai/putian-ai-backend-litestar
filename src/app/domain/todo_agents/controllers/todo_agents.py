@@ -139,9 +139,17 @@ class TodoAgentController(Controller):
         data: AgentTodoRequest,
         todo_agent_service: Annotated["TodoAgentService", Dependency(skip_validation=True)],
     ) -> ServerSentEvent:
-        """Stream todo agent responses as Server-Sent Events."""
+        """Stream todo agent responses as Server-Sent Events.
+
+        Supports multiple agent types:
+        - TodoAssistant (default): Full-featured agent with all tools
+        - CRUDAgent: Specialized for create, update, delete operations
+        - SchedulingAgent: Specialized for scheduling and time management
+        - UtilityAgent: Specialized for listing and information queries
+        """
 
         session_id = data.session_id
+        agent_type = data.agent_type  # Default is "TodoAssistant" from schema
 
         def _serialize_payload(payload: Any) -> str:
             if isinstance(payload, bytes):
@@ -182,6 +190,7 @@ class TodoAgentController(Controller):
                     user_id=str(current_user.id),
                     message=user_message,
                     session_id=session_id,
+                    agent_type=agent_type,
                 ):
                     event_name = payload.get("event", "message")
                     event_data = _serialize_payload(payload.get("data"))
@@ -201,6 +210,21 @@ class TodoAgentController(Controller):
                         "monthly_limit": exc.monthly_limit,
                         "reset_date": exc.reset_date.isoformat() if exc.reset_date else None,
                         "remaining_quota": max(0, exc.monthly_limit - exc.current_usage),
+                    }),
+                )
+            except ValueError as exc:
+                # Handle invalid agent_type
+                logger.warning(
+                    "Invalid agent type requested",
+                    error=str(exc),
+                    user_id=current_user.id,
+                    agent_type=agent_type,
+                )
+                yield ServerSentEventMessage(
+                    event="error",
+                    data=_serialize_payload({
+                        "status": "error",
+                        "message": str(exc),
                     }),
                 )
             except Exception as exc:  # pragma: no cover - defensive

@@ -35,6 +35,10 @@ class AgentTodoRequest(PydanticBaseModel):
         None, description="Optional session ID for conversation persistence")
     session_name: str | None = Field(
         None, description="Optional human-readable session name")
+    agent_type: str = Field(
+        default="TodoAssistant",
+        description="Type of agent to use: TodoAssistant (default), CRUDAgent, SchedulingAgent, UtilityAgent"
+    )
 
 
 class AgentTodoResponse(PydanticBaseModel):
@@ -50,11 +54,16 @@ class AgentTodoResponse(PydanticBaseModel):
 class UsageStatsResponse(PydanticBaseModel):
     """Response schema for usage statistics."""
 
-    status: str = Field(default="success", description="Status of the operation")
-    current_month: str = Field(..., description="Current month in YYYY-MM format")
-    usage_count: int = Field(..., description="Number of requests used this month")
-    monthly_limit: int = Field(..., description="Maximum requests allowed per month")
-    remaining_quota: int = Field(..., description="Requests remaining this month")
+    status: str = Field(default="success",
+                        description="Status of the operation")
+    current_month: str = Field(...,
+                               description="Current month in YYYY-MM format")
+    usage_count: int = Field(...,
+                             description="Number of requests used this month")
+    monthly_limit: int = Field(...,
+                               description="Maximum requests allowed per month")
+    remaining_quota: int = Field(...,
+                                 description="Requests remaining this month")
     reset_date: datetime = Field(..., description="When the quota resets")
 
 
@@ -63,11 +72,15 @@ class RateLimitErrorResponse(PydanticBaseModel):
 
     status: str = Field(default="error", description="Status of the operation")
     message: str = Field(..., description="Human-readable error message")
-    error_code: str = Field(default="RATE_LIMIT_EXCEEDED", description="Error code")
-    current_usage: int = Field(..., description="Number of requests used this month")
-    monthly_limit: int = Field(..., description="Maximum requests allowed per month")
+    error_code: str = Field(
+        default="RATE_LIMIT_EXCEEDED", description="Error code")
+    current_usage: int = Field(...,
+                               description="Number of requests used this month")
+    monthly_limit: int = Field(...,
+                               description="Maximum requests allowed per month")
     reset_date: datetime = Field(..., description="When the quota resets")
-    remaining_quota: int = Field(..., description="Requests remaining this month")
+    remaining_quota: int = Field(...,
+                                 description="Requests remaining this month")
 
 
 class CreateTodoArgs(PydanticBaseModel):

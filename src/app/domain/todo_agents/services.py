@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 from app.lib.exceptions import RateLimitExceededException
 
-from .tools.agent_factory import get_todo_agent
+from .tools.agent_factory import get_agent_by_type, get_todo_agent
 from .tools.tool_context import set_agent_context
 
 __all__ = (
@@ -119,6 +119,7 @@ class TodoAgentService:
         message: str,
         session_id: str | None = None,
         *,
+        agent_type: str = "TodoAssistant",
         history_limit: int = 10,
     ) -> "AsyncGenerator[dict[str, Any], None]":
         """Stream agent responses as structured events.
@@ -127,6 +128,11 @@ class TodoAgentService:
             user_id: ID of the user sending the message.
             message: Message to send to the agent.
             session_id: Optional existing session identifier.
+            agent_type: Type of agent to use. Valid values:
+                - "TodoAssistant" (default): Full-featured agent
+                - "CRUDAgent": Specialized for CRUD operations
+                - "SchedulingAgent": Specialized for scheduling
+                - "UtilityAgent": Specialized for listing/info
             history_limit: Maximum number of history items to include in the
                 final history event.
 
@@ -165,8 +171,8 @@ class TodoAgentService:
 
         session = self._sessions[session_id]
 
-        # Get the todo agent (with tools)
-        agent = get_todo_agent()
+        # Get the appropriate agent based on type
+        agent = get_agent_by_type(agent_type)
 
         stream = Runner.run_streamed(
             agent,
