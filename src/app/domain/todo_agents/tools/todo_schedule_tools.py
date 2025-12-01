@@ -15,7 +15,7 @@ from .argument_models import (
     GetTodoListArgs,
     ScheduleTodoArgs,
 )
-from .todo_crud_tools import _preprocess_args
+from .todo_crud_tools import _preprocess_args, _safe_session_rollback
 from .tool_context import get_current_user_id, get_tag_service, get_todo_service
 
 if TYPE_CHECKING:
@@ -500,7 +500,7 @@ async def _create_scheduled_todo(
         await session.commit()
         await session.refresh(todo)
     except Exception:
-        await session.rollback()
+        await _safe_session_rollback(session)
         raise
 
     return todo, associated_tags

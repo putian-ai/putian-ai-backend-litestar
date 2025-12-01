@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
+
+from sqlalchemy.exc import InvalidRequestError
 
 from app.db import models as m
 from app.db.models.importance import Importance
@@ -15,9 +17,7 @@ from .tool_context import get_current_user_id, get_tag_service, get_todo_service
 
 if TYPE_CHECKING:
     from uuid import UUID
-
     from agents import RunContextWrapper
-
     from app.db.models.todo import Todo
 
 __all__ = [
@@ -54,6 +54,25 @@ def _parse_datetime_with_timezone(date_str: str, user_tz: ZoneInfo) -> datetime 
         except ValueError:
             continue
     return None
+
+
+async def _safe_session_rollback(session: Any) -> None:
+    """Rollback session without raising if transaction already closed."""
+    get_transaction = getattr(session, "get_transaction", None)
+    if get_transaction is None:
+        return
+    transaction = get_transaction()
+    if transaction is None:
+        return
+
+    rollback = getattr(session, "rollback", None)
+    if rollback is None:
+        return
+
+    try:
+        await rollback()
+    except InvalidRequestError:
+        return
 
 
 async def _validate_time_updates(
@@ -219,7 +238,7 @@ async def create_todo_impl(ctx: RunContextWrapper, args: str) -> str:
         await session.commit()
         await session.refresh(todo)
     except Exception as e:
-        await session.rollback()
+        await _safe_session_rollback(session)
         return f"Error creating todo: {e!s}"
 
     tag_info = f" (tags: {', '.join(associated_tags)})" if associated_tags else ""
