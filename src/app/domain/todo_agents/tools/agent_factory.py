@@ -6,8 +6,10 @@ todo agent with all necessary tools and configurations.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, TYPE_CHECKING, cast
 
+from agents import Agent
+from agents.extensions.models.litellm_model import LitellmModel
 from app.config import get_settings
 
 from .system_instructions import (
@@ -22,10 +24,11 @@ from .tool_definitions import (
     get_schedule_tool_definitions,
     get_support_tool_definitions,
     get_tool_definitions,
+    get_universal_tool_definitions,
 )
 
 if TYPE_CHECKING:
-    from agents import Agent, Tool
+    from agents import Tool
 
 __all__ = [
     "get_agent_by_name",
@@ -39,8 +42,6 @@ __all__ = [
 
 def _get_model() -> Any:
     """Get the configured LiteLLM model instance."""
-    from agents.extensions.models.litellm_model import LitellmModel
-
     settings = get_settings()
 
     return LitellmModel(
@@ -56,8 +57,6 @@ def _build_agent(
     instructions: str = TODO_SYSTEM_INSTRUCTIONS,
     handoff_description: str | None = None,
 ) -> "Agent":
-    from agents import Agent
-
     return Agent(
         name=name,
         instructions=instructions,
@@ -112,8 +111,6 @@ def get_orchestrator_agent() -> "Agent":
     This agent uses the agents-as-tools pattern, where each sub-agent is exposed
     as a tool that the orchestrator can call to handle specific types of requests.
     """
-    from agents import Agent
-
     # Create sub-agents
     crud_agent = get_todo_crud_agent()
     schedule_agent = get_todo_schedule_agent()
@@ -146,6 +143,8 @@ def get_orchestrator_agent() -> "Agent":
             ),
         ),
     ]
+
+    orchestrator_tools.extend(get_universal_tool_definitions())
 
     return Agent(
         name="TodoOrchestratorAgent",

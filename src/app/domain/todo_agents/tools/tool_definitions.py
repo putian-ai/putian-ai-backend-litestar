@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from agents import FunctionTool
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
-
-    from agents import FunctionTool
 
 from .argument_models import (
     AnalyzeScheduleArgs,
@@ -35,16 +35,16 @@ from .todo_support_tools import get_user_quota_impl
 from .universal_tools import get_user_datetime_impl
 
 __all__ = [
-    "get_tool_definitions",
     "get_crud_tool_definitions",
     "get_schedule_tool_definitions",
     "get_support_tool_definitions",
+    "get_tool_definitions",
+    "get_universal_tool_definitions",
 ]
 
 
 def _build_tool_objects() -> dict[str, FunctionTool]:
     """Create FunctionTool objects for all available todo tools."""
-    from agents import FunctionTool
 
     get_user_datetime_tool = FunctionTool(
         name="get_user_datetime",
@@ -141,11 +141,10 @@ def _get_crud_tools(tool_map: dict[str, FunctionTool]) -> list[FunctionTool]:
 
 
 def _get_schedule_tools(tool_map: dict[str, FunctionTool]) -> list[FunctionTool]:
+    # Only expose read/analysis scheduling helpers for now. Add write helpers once stabilized.
     return [
         tool_map["get_todo_list"],
         tool_map["analyze_schedule"],
-        # tool_map["schedule_todo"],
-        # tool_map["batch_update_schedule"],
     ]
 
 
@@ -192,3 +191,9 @@ def get_support_tool_definitions(include_universal: bool = True) -> Sequence[Fun
         result.extend(_get_universal_tools(tools))
     result.extend(_get_support_tools(tools))
     return result
+
+
+def get_universal_tool_definitions() -> Sequence[FunctionTool]:
+    """Return FunctionTool definitions that should be available to all agents."""
+    tools = _build_tool_objects()
+    return list(_get_universal_tools(tools))
