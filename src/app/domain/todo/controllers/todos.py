@@ -100,7 +100,7 @@ class TodoController(Controller):
         if not todo:
             return f"Todo item {todo_id} not found."
         todo_dict = data.to_dict()
-        updated_todo = await todo_service.update(todo, **todo_dict)
+        updated_todo = await todo_service.update(item_id=todo_id, data=todo_dict)
         return todo_service.to_schema(updated_todo, schema_type=TodoModel)
 
     @delete(path="/{todo_id:uuid}", operation_id="delete_todo", status_code=200)
