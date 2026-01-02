@@ -52,10 +52,10 @@ endif
 
 dev:                                                ## Run the application in development mode
 ifeq ($(DETECTED_OS),Windows)
-	powershell -noprofile -Command "$$env:APP_ENV='development'; uv run app run --reload"
+	powershell -noprofile -Command "$$env:APP_ENV='development'; uv run app run --reload --reload-paths \"src\""
 else
 	# For macOS/Linux
-	APP_ENV=development uv run app run --reload
+	APP_ENV=development uv run app run --reload --reload-paths "src"
 endif
 
 # =============================================================================
