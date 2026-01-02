@@ -12,6 +12,7 @@ from openai.types.responses import ResponseTextDeltaEvent
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
+    from app.domain.memory.agent_service import MemoryAgentService
     from app.domain.quota.services import UserUsageQuotaService
     from app.domain.todo.services import TagService, TodoService
     from app.lib.rate_limit_service import RateLimitService
@@ -42,6 +43,7 @@ class TodoAgentService:
         tag_service: "TagService",
         rate_limit_service: "RateLimitService",
         quota_service: "UserUsageQuotaService",
+        memory_agent_service: "MemoryAgentService | None" = None,
         session_db_path: str = "conversations.db",
     ) -> None:
         """Initialize the service with required dependencies.
@@ -57,6 +59,7 @@ class TodoAgentService:
         self.tag_service = tag_service
         self.rate_limit_service = rate_limit_service
         self.quota_service = quota_service
+        self.memory_agent_service = memory_agent_service
         self.session_db_path = session_db_path
         self._sessions: dict[str, SQLiteSession] = {}
 
@@ -109,11 +112,15 @@ class TodoAgentService:
 
         # Get the requested todo agent (with tools)
         agent = get_agent_by_name(agent_name)
+        memory_context = await self._build_memory_context(UUID(user_id), message)
+        agent, input_payload = self._prepare_agent_run(agent, message, memory_context)
 
         # Run the agent with session - conversation history is automatically managed!
-        result = await Runner.run(agent, message, session=session, max_turns=20)
+        result = await Runner.run(agent, input_payload, session=session, max_turns=20)
+        final_output = str(result.final_output)
+        await self._update_memory_after_response(UUID(user_id), message, final_output)
 
-        return result.final_output
+        return final_output
 
     async def stream_chat_with_agent(
         self,
@@ -171,10 +178,12 @@ class TodoAgentService:
 
         # Get the requested todo agent (with tools)
         agent = get_agent_by_name(agent_name)
+        memory_context = await self._build_memory_context(UUID(user_id), message)
+        agent, input_payload = self._prepare_agent_run(agent, message, memory_context)
 
         stream = Runner.run_streamed(
             agent,
-            message,
+            input_payload,
             session=session,
             max_turns=20,
         )
@@ -223,6 +232,9 @@ class TodoAgentService:
             }
             return
 
+        final_message = last_message if last_message is not None else "".join(last_message_chunks)
+        if final_message:
+            await self._update_memory_after_response(UUID(user_id), message, final_message)
         history = await self.get_session_history(session_id=session_id, limit=history_limit)
         yield {
             "event": "history",
@@ -393,6 +405,53 @@ class TodoAgentService:
             session = self._sessions[session_id]
             await session.clear_session()
 
+    async def _build_memory_context(
+        self,
+        user_id: UUID,
+        message: str,
+    ) -> str | None:
+        if not self.memory_agent_service:
+            return None
+        result = await self.memory_agent_service.build_memory_context(user_id, message)
+        if not result:
+            return None
+        if not result.context.strip():
+            return None
+        return result.context.strip()
+
+    async def _update_memory_after_response(
+        self,
+        user_id: UUID,
+        message: str,
+        agent_response: str,
+    ) -> None:
+        if not self.memory_agent_service:
+            return
+        await self.memory_agent_service.update_memory_after_response(
+            user_id,
+            message,
+            agent_response,
+        )
+
+    @staticmethod
+    def _prepare_agent_run(
+        agent: Any,
+        message: str,
+        memory_context: str | None,
+    ) -> tuple[Any, str | list[dict[str, str]]]:
+        if not memory_context:
+            return agent, message
+
+        if isinstance(agent.instructions, str):
+            enhanced_instructions = "\n\n".join(
+                [agent.instructions, "MEMORY CONTEXT:", memory_context]
+            )
+            return agent.clone(instructions=enhanced_instructions), message
+
+        system_message = {"role": "system", "content": f"MEMORY CONTEXT:\n{memory_context}"}
+        user_message = {"role": "user", "content": message}
+        return agent, [system_message, user_message]
+
     def list_active_sessions(self) -> list[str]:
         """List all active session IDs currently in memory.
 
@@ -421,6 +480,7 @@ def create_todo_agent_service(
     tag_service: "TagService",
     rate_limit_service: "RateLimitService",
     quota_service: "UserUsageQuotaService",
+    memory_agent_service: "MemoryAgentService | None" = None,
     session_db_path: str = "conversations.db",
 ) -> TodoAgentService:
     """Factory function to create TodoAgentService with proper dependencies.
@@ -440,5 +500,6 @@ def create_todo_agent_service(
         tag_service=tag_service,
         rate_limit_service=rate_limit_service,
         quota_service=quota_service,
+        memory_agent_service=memory_agent_service,
         session_db_path=session_db_path,
     )

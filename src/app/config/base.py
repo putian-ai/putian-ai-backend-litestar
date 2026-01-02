@@ -280,6 +280,8 @@ class AppSettings:
 
     APP_LOC: str = "app.asgi:create_app"
     """Path to app executable, or factory."""
+    ENV: str = field(default_factory=get_env("APP_ENV", "production"))
+    """Application runtime environment, e.g. development/production."""
     URL: str = field(default_factory=get_env(
         "APP_URL", "http://localhost:8000"))
     """The frontend base URL"""
@@ -388,6 +390,11 @@ class AISettings:
     GLM_BASE_URL: str | None = field(
         default_factory=get_env("GLM_BASE_URL", None))
     """GLM Base URL for API endpoints"""
+    MEMORY_ENABLED: bool = field(default_factory=get_env("MEMORY_ENABLED", True))
+    """Enable memory pipeline for agent runs."""
+    MEMORY_MAX_BULLETS: int = field(
+        default_factory=get_env("MEMORY_MAX_BULLETS", 20))
+    """Maximum number of memory bullets to inject per run."""
 
 
 @dataclass

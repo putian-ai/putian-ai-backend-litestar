@@ -65,6 +65,7 @@ class ApplicationCore(InitPluginProtocol, CLIPluginProtocol):
         from app.domain.accounts.services_email_verification import EmailVerificationService
         from app.domain.agent_sessions.controllers import AgentSessionController, SessionMessageController
         from app.domain.agent_sessions.services import AgentSessionService, SessionMessageService
+        from app.domain.memory.services import MemoryService
         from app.domain.quota.services import UserUsageQuotaService
         from app.domain.system.controllers import SystemController
         from app.domain.todo.controllers import TodoController
@@ -132,6 +133,7 @@ class ApplicationCore(InitPluginProtocol, CLIPluginProtocol):
                 "TodoService": TodoService,
                 "TagService": TagService,
                 "TodoAgentService": TodoAgentService,
+                "MemoryService": MemoryService,
                 "UserUsageQuotaService": UserUsageQuotaService,
             },
         )

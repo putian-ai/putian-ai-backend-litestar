@@ -1,6 +1,7 @@
 from .agent_session import AgentSession
 from .email_verification_token import EmailVerificationToken
 from .importance import Importance
+from .memory import Memory
 from .oauth_account import UserOauthAccount
 from .password_reset_token import PasswordResetToken
 from .role import Role
@@ -16,6 +17,7 @@ __all__ = (
     "AgentSession",
     "EmailVerificationToken",
     "Importance",
+    "Memory",
     "MessageRole",
     "PasswordResetToken",
     "Role",

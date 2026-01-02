@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 if TYPE_CHECKING:
     from .agent_session import AgentSession
     from .email_verification_token import EmailVerificationToken
+    from .memory import Memory
     from .oauth_account import UserOauthAccount
     from .password_reset_token import PasswordResetToken
     from .tag import Tag
@@ -65,6 +66,12 @@ class User(UUIDAuditBase):
         cascade="all, delete-orphan",
     )
     agent_sessions: Mapped[list[AgentSession]] = relationship(
+        back_populates="user",
+        lazy="selectin",
+        uselist=True,
+        cascade="all, delete-orphan",
+    )
+    memories: Mapped[list[Memory]] = relationship(
         back_populates="user",
         lazy="selectin",
         uselist=True,

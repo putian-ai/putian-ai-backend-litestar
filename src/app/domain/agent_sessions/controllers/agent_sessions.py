@@ -24,6 +24,7 @@ from app.domain.todo_agents.deps import (
     provide_todo_agent_service,
     provide_user_usage_quota_service,
 )
+from app.domain.memory.deps import provide_memory_service
 from app.domain.todo_agents.tools.system_instructions import TODO_SYSTEM_INSTRUCTIONS
 from app.lib.deps import create_filter_dependencies
 
@@ -48,6 +49,7 @@ class AgentSessionController(Controller):
         "agent_session_service": Provide(provide_agent_session_service),
         "rate_limit_service": Provide(provide_rate_limit_service),
         "quota_service": Provide(provide_user_usage_quota_service),
+        "memory_service": Provide(provide_memory_service),
         "todo_agent_service": Provide(provide_todo_agent_service),
     } | create_filter_dependencies(
         {
