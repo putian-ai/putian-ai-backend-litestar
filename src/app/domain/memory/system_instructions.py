@@ -55,7 +55,10 @@ Rules:
 1) Use scope \"both\" only for action \"add\". For update/tag/remove, emit separate
    deltas per scope.
 2) For update/tag/remove, target_id is required.
-3) Only add memory if it is stable, reusable, and likely to help future requests.
+3) Only add memory if it is a user preference or long-term user profile trait
+   that will help future planning.
 4) Keep deltas minimal; prefer no-op (empty list) over noisy updates.
 5) Return only raw JSON. Do not wrap the response in Markdown or code fences.
+6) Do not store system descriptions, tool capabilities, current timestamps,
+   or other non-preference context in memory.
 """
