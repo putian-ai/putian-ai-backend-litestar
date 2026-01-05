@@ -137,8 +137,8 @@ class TodoAgentService:
             user_id: ID of the user sending the message.
             message: Message to send to the agent.
             session_id: Optional existing session identifier.
-            history_limit: Maximum number of history items to include in the
-                final history event.
+            history_limit: Reserved for compatibility; streaming no longer emits
+                history events.
             agent_name: Optional agent name to route to a specialized agent. Defaults to TodoAssistant.
 
         Yields:
@@ -235,11 +235,6 @@ class TodoAgentService:
         final_message = last_message if last_message is not None else "".join(last_message_chunks)
         if final_message:
             await self._update_memory_after_response(UUID(user_id), message, final_message)
-        history = await self.get_session_history(session_id=session_id, limit=history_limit)
-        yield {
-            "event": "history",
-            "data": history,
-        }
 
     def _dispatch_stream_event(
         self,
@@ -355,14 +350,7 @@ class TodoAgentService:
                 cast("Any", event.item))
             return (
                 True,
-                [
-                    {
-                        "event": "message",
-                        "data": {
-                            "content": message_output,
-                        },
-                    }
-                ],
+                [],
                 message_output,
             )
 
