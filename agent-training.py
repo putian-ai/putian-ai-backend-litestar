@@ -23,8 +23,11 @@ class SimpleEnvironment(TaskEnvironment):
     """Minimal environment for testing."""
 
     def evaluate(self, sample, generator_output):
-        correct = sample.ground_truth.lower(  # type: ignore
-        ) in generator_output.final_answer.lower()  # type: ignore
+        correct = (
+            sample.ground_truth.lower(  # type: ignore
+            )
+            in generator_output.final_answer.lower()
+        )  # type: ignore
         return EnvironmentResult(
             feedback="Correct!" if correct else "Incorrect",
             ground_truth=sample.ground_truth,
@@ -41,7 +44,7 @@ def main():
 
     # 1. Create LLM client(s)
     glm_model = LitellmModel(
-        model="openai/glm-4.6",
+        model="openai/glm-4.7",
         api_key=os.getenv("GLM_API_KEY"),
         base_url=os.getenv("GLM_BASE_URL"),
     )

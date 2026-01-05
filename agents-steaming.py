@@ -20,7 +20,7 @@ def how_many_jokes() -> int:
 async def main():
     # Configure GLM model from environment variables (fallbacks to None)
     glm_model = LitellmModel(
-        model="openai/glm-4.6",
+        model="openai/glm-4.7",
         api_key=os.getenv("GLM_API_KEY"),
         base_url=os.getenv("GLM_BASE_URL"),
     )
@@ -53,8 +53,7 @@ async def main():
             elif event.item.type == "tool_call_output_item":
                 print(f"-- Tool output: {event.item.output}")
             elif event.item.type == "message_output_item":
-                print(
-                    f"-- Message output:\n {ItemHelpers.text_message_output(event.item)}")
+                print(f"-- Message output:\n {ItemHelpers.text_message_output(event.item)}")
             else:
                 pass  # Ignore other event types
 

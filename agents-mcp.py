@@ -11,7 +11,7 @@ load_dotenv()
 
 async def main() -> None:
     glm_model = LitellmModel(
-        model="openai/glm-4.6",
+        model="openai/glm-4.7",
         api_key=os.getenv("GLM_API_KEY"),
         base_url=os.getenv("GLM_BASE_URL"),
     )
@@ -32,6 +32,7 @@ async def main() -> None:
         )
         result = await Runner.run(agent, "What's the weather in tokyo?")
     print(result.final_output)  # noqa: T201
+
 
 if __name__ == "__main__":
     asyncio.run(main())
