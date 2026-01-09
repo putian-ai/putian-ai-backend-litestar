@@ -395,6 +395,24 @@ class AISettings:
     MEMORY_MAX_BULLETS: int = field(
         default_factory=get_env("MEMORY_MAX_BULLETS", 20))
     """Maximum number of memory bullets to inject per run."""
+    MEMORY_QUEUE_ENABLED: bool = field(
+        default_factory=get_env("MEMORY_QUEUE_ENABLED", True))
+    """Enable redis queue for memory updates."""
+    MEMORY_QUEUE_URL: str = field(
+        default_factory=get_env("MEMORY_QUEUE_URL", "redis://localhost:6379/0"))
+    """Redis URL for memory queue."""
+    MEMORY_QUEUE_NAME: str = field(
+        default_factory=get_env("MEMORY_QUEUE_NAME", "memory_updates"))
+    """Queue name used for memory updates."""
+    MEMORY_QUEUE_MAX_RETRIES: int = field(
+        default_factory=get_env("MEMORY_QUEUE_MAX_RETRIES", 3))
+    """Maximum retry attempts for queued memory updates."""
+    MEMORY_QUEUE_JOB_TIMEOUT: int = field(
+        default_factory=get_env("MEMORY_QUEUE_JOB_TIMEOUT", 120))
+    """Timeout in seconds for each queued memory update job."""
+    MEMORY_QUEUE_WORKER_ENABLED: bool = field(
+        default_factory=get_env("MEMORY_QUEUE_WORKER_ENABLED", True))
+    """Enable in-process worker for memory updates."""
 
 
 @dataclass

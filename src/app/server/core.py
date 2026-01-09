@@ -65,6 +65,7 @@ class ApplicationCore(InitPluginProtocol, CLIPluginProtocol):
         from app.domain.accounts.services_email_verification import EmailVerificationService
         from app.domain.agent_sessions.controllers import AgentSessionController, SessionMessageController
         from app.domain.agent_sessions.services import AgentSessionService, SessionMessageService
+        from app.domain.memory.queue import MemoryQueueService, start_memory_worker, stop_memory_worker
         from app.domain.memory.services import MemoryService
         from app.domain.quota.services import UserUsageQuotaService
         from app.domain.system.controllers import SystemController
@@ -134,6 +135,7 @@ class ApplicationCore(InitPluginProtocol, CLIPluginProtocol):
                 "TagService": TagService,
                 "TodoAgentService": TodoAgentService,
                 "MemoryService": MemoryService,
+                "MemoryQueueService": MemoryQueueService,
                 "UserUsageQuotaService": UserUsageQuotaService,
             },
         )
@@ -149,6 +151,9 @@ class ApplicationCore(InitPluginProtocol, CLIPluginProtocol):
         app_config.listeners.extend(
             [account_signals.user_created_event_handler],
         )
+        # lifecycle hooks
+        app_config.on_startup.append(start_memory_worker)
+        app_config.on_shutdown.append(stop_memory_worker)
         return app_config
 
     def _cache_key_builder(self, request: Request) -> str:

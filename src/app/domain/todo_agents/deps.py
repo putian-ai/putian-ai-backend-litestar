@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.domain.memory.agent_service import MemoryAgentService
+    from app.domain.memory.queue import MemoryQueueService
     from app.domain.memory.services import MemoryService
     from app.domain.quota.services import UserUsageQuotaService
     from app.domain.todo.services import TagService, TodoService
@@ -27,6 +28,7 @@ async def provide_todo_agent_service(
     rate_limit_service: "RateLimitService",
     quota_service: "UserUsageQuotaService",
     memory_service: "MemoryService",
+    memory_queue_service: "MemoryQueueService",
 ) -> "TodoAgentService":
     """Dependency provider for TodoAgentService.
 
@@ -38,6 +40,7 @@ async def provide_todo_agent_service(
         tag_service: TagService instance for tag operations
         rate_limit_service: RateLimitService instance for rate limiting
         quota_service: UserUsageQuotaService instance for quota management
+        memory_queue_service: MemoryQueueService instance for async memory updates
 
     Returns:
         Configured TodoAgentService instance with SQLite session storage
@@ -48,6 +51,7 @@ async def provide_todo_agent_service(
         rate_limit_service=rate_limit_service,
         quota_service=quota_service,
         memory_agent_service=create_memory_agent_service(memory_service),
+        memory_queue_service=memory_queue_service,
     )
 
 

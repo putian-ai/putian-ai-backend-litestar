@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
     from app.domain.memory.agent_service import MemoryAgentService
+    from app.domain.memory.queue import MemoryQueueService
     from app.domain.quota.services import UserUsageQuotaService
     from app.domain.todo.services import TagService, TodoService
     from app.lib.rate_limit_service import RateLimitService
@@ -44,6 +45,7 @@ class TodoAgentService:
         rate_limit_service: "RateLimitService",
         quota_service: "UserUsageQuotaService",
         memory_agent_service: "MemoryAgentService | None" = None,
+        memory_queue_service: "MemoryQueueService | None" = None,
         session_db_path: str = "conversations.db",
     ) -> None:
         """Initialize the service with required dependencies.
@@ -53,6 +55,7 @@ class TodoAgentService:
             tag_service: Service for tag operations
             rate_limit_service: Service for rate limiting
             quota_service: Service for quota management
+            memory_queue_service: Optional queue service for async memory updates
             session_db_path: Path to SQLite database for storing conversations
         """
         self.todo_service = todo_service
@@ -60,6 +63,7 @@ class TodoAgentService:
         self.rate_limit_service = rate_limit_service
         self.quota_service = quota_service
         self.memory_agent_service = memory_agent_service
+        self.memory_queue_service = memory_queue_service
         self.session_db_path = session_db_path
         self._sessions: dict[str, SQLiteSession] = {}
 
@@ -415,11 +419,15 @@ class TodoAgentService:
     ) -> None:
         if not self.memory_agent_service:
             return
-        await self.memory_agent_service.update_memory_after_response(
-            user_id,
-            message,
-            agent_response,
-        )
+        if self.memory_queue_service:
+            enqueued = await self.memory_queue_service.enqueue_memory_update(
+                user_id,
+                message,
+                agent_response,
+            )
+            if enqueued:
+                return
+        await self.memory_agent_service.update_memory_after_response(user_id, message, agent_response)
 
     @staticmethod
     def _prepare_agent_run(
@@ -469,6 +477,7 @@ def create_todo_agent_service(
     rate_limit_service: "RateLimitService",
     quota_service: "UserUsageQuotaService",
     memory_agent_service: "MemoryAgentService | None" = None,
+    memory_queue_service: "MemoryQueueService | None" = None,
     session_db_path: str = "conversations.db",
 ) -> TodoAgentService:
     """Factory function to create TodoAgentService with proper dependencies.
@@ -478,6 +487,7 @@ def create_todo_agent_service(
         tag_service: Service for tag operations
         rate_limit_service: Service for rate limiting
         quota_service: Service for quota management
+        memory_queue_service: Optional queue service for async memory updates
         session_db_path: Path to SQLite database for storing conversations
 
     Returns:
@@ -489,5 +499,6 @@ def create_todo_agent_service(
         rate_limit_service=rate_limit_service,
         quota_service=quota_service,
         memory_agent_service=memory_agent_service,
+        memory_queue_service=memory_queue_service,
         session_db_path=session_db_path,
     )
