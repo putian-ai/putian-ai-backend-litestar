@@ -54,9 +54,9 @@ description: '结合本仓库约束的 AI 编程助手工作流（研究→构�
 
 **任务描述**:
 
-给本项目添加代码来支持在开发模式 development mode 下，可以无需登录，比如通过增加 middleware 来自动注入一个测试用户到每个请求中，从而方便本地开发和调试。并研究一个方式来进行 development 模式下 api 的 end to end 测试，你可以选择 curl python requests 或  node 方式来进行，选择你最熟悉认为合适的方式来实现。
+阅读 .agents/exec-plans/MEMORY_EXECPLAN_MEMORY.md
 
-
+现在的问题是： TodoAgent 对话完之后， Memory Agent 工作时，无法进行下一轮对话，联网搜索，如何在本项目中集成 queue，使得 Memory Agent 可以将需要后续处理的任务放入队列处理，不需要卡在这里。
 
 正在启动带质量把关的结构化开发工作流...
 
@@ -199,6 +199,7 @@ project/
         │   └── todo_agents/
         ├── lib/
         └── server/
+└── front-end/
 └── tests/
     ├── unit/
     └── integration/

@@ -44,6 +44,7 @@
 - 系统引入全局记忆（global）与用户记忆（user）两类 Memory，用于跨会话沉淀偏好与规则。
 - Memory Agent 在业务 Agent 执行前注入相关记忆上下文，执行后基于结果总结并更新记忆。
 - 记忆的读写为内部能力，当前不暴露新的对外 API 端点。
+- Memory 更新通过 Redis 队列后台执行（ARQ Worker），避免阻塞对话响应；可通过 `MEMORY_QUEUE_*` 配置控制。
 
 ## 会话与历史
 - 会话采用 Agents SDK 的 `SQLiteSession` 持久化，默认存储在 `conversations.db`。
