@@ -7,12 +7,14 @@ This guide outlines how to collaborate on the Litestar todo backend with OpenAI 
 - Agents sit in `src/app/domain/todo_agents` (CLI deps, controllers, services, and `tools/` implementations) and persist history through `src/app/domain/agent_sessions` plus `app/lib/database_session.py`.
 - Tests mirror runtime modules: fast unit suites in `tests/unit`, API and agent flows in `tests/integration`, with fixtures in `tests/data_fixtures.py` and `tests/conftest.py`.
 - Supporting assets include Docker and infra scripts in `deploy/`, docs in `docs/`, and runnable examples under `examples/`.
+- Electron front-end lives in `electron-frontend/` (Vite Electron Builder scaffold), with its own `package.json`, tests, and README.
 
 ## Build, Test, and Development Commands
 - `uv install` (or `make install`) provisions Python 3.13, dev extras, Node tooling, and pre-commit hooks.
 - `make dev` runs the API with reload and correct `APP_ENV`; `make run` mirrors production flags; use `make start-infra` to boot local Postgres/Redis if your feature needs them.
 - `uv run app run` launches the ASGI app directly; `uv run app database upgrade` applies migrations defined under `src/app/db/migrations`.
 - Quality gates live in the Makefile: `make lint` (pre-commit, mypy, pyright, slotscheck), `make test` (pytest xdist), and `make coverage` (pytest + coverage HTML/XML).
+- Electron front-end tooling is isolated under `electron-frontend/`; follow `electron-frontend/README.md` for `npm start`, `npm run compile`, and test workflows.
 
 ## Coding Style & Naming Conventions
 - Python uses 4-space indentation, full type hints, and Ruff-enforced 120-column lines; match snake_case functions, PascalCase classes, and SCREAMING_SNAKE constants.

@@ -16,6 +16,7 @@ description: '结合本仓库约束的 AI 编程助手工作流（研究→构�
 - 构建/运行与质量门禁以 **uv + Makefile** 为准：优先使用 `uv run ...`、`make lint`、`make test`、`make dev`、`make run`
 - 数据库/缓存等基础设施通过 `deploy/` 与 `docker-compose*.yml` 管理；如变更依赖 infra，优先补齐文档/本地启动指引
 - 生成内容与临时产物（例如 `__pycache__/`、构建缓存、运行日志）不手工编辑；如需清理用命令处理
+- Electron 前端位于 `electron-frontend/`（Vite Electron Builder 脚手架），其构建与测试命令独立于后端 Makefile
 - ExecPlan 文件统一存放在 `.agents/exec-plans/`，命名用简短的 kebab-case 任务名（小写加连字符），目录不存在先创建
 
 ## 你的角色
@@ -200,6 +201,7 @@ project/
         ├── lib/
         └── server/
 └── front-end/
+└── electron-frontend/
 └── tests/
     ├── unit/
     └── integration/
