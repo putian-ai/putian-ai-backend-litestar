@@ -55,9 +55,9 @@ description: '结合本仓库约束的 AI 编程助手工作流（研究→构�
 
 **任务描述**:
 
-阅读 .agents/exec-plans/MEMORY_EXECPLAN_MEMORY.md
+用网络搜索调研 https://github.com/hey-api/openapi-ts
 
-现在的问题是： TodoAgent 对话完之后， Memory Agent 工作时，无法进行下一轮对话，联网搜索，如何在本项目中集成 queue，使得 Memory Agent 可以将需要后续处理的任务放入队列处理，不需要卡在这里。
+集成在 electron-frontend/ 前端项目中，用来生成 API 客户端代码，后端已开启 make dev，开放在 localhost:8089 端口
 
 正在启动带质量把关的结构化开发工作流...
 
