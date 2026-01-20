@@ -15,6 +15,7 @@ This guide outlines how to collaborate on the Litestar todo backend with OpenAI 
 - `uv run app run` launches the ASGI app directly; `uv run app database upgrade` applies migrations defined under `src/app/db/migrations`.
 - Quality gates live in the Makefile: `make lint` (pre-commit, mypy, pyright, slotscheck), `make test` (pytest xdist), and `make coverage` (pytest + coverage HTML/XML).
 - Electron front-end tooling is isolated under `electron-frontend/`; follow `electron-frontend/README.md` for `npm start`, `npm run compile`, and test workflows.
+- Run `npm run openapi` inside `electron-frontend/` to regenerate the renderer API client from `http://127.0.0.1:8089/schema/openapi.json`.
 
 ## Coding Style & Naming Conventions
 - Python uses 4-space indentation, full type hints, and Ruff-enforced 120-column lines; match snake_case functions, PascalCase classes, and SCREAMING_SNAKE constants.
