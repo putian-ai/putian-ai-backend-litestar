@@ -55,9 +55,7 @@ description: '结合本仓库约束的 AI 编程助手工作流（研究→构�
 
 **任务描述**:
 
-用网络搜索调研 https://github.com/hey-api/openapi-ts
-
-集成在 electron-frontend/ 前端项目中，用来生成 API 客户端代码，后端已开启 make dev，开放在 localhost:8089 端口
+（从用户输入获取）
 
 正在启动带质量把关的结构化开发工作流...
 
