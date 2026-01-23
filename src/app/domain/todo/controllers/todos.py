@@ -34,7 +34,7 @@ class TodoController(Controller):
             "pagination_size": 40,
             "created_at": True,
             "updated_at": True,
-            "sort_field": "created_time",
+            "sort_field": "created_at",
             "sort_order": "asc",
         },
     )

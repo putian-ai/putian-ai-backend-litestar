@@ -34,7 +34,23 @@ csrf = CSRFConfig(
     cookie_secure=settings.app.CSRF_COOKIE_SECURE,
     cookie_name=settings.app.CSRF_COOKIE_NAME,
 )
-cors = CORSConfig(allow_origins=cast("list[str]", settings.app.ALLOWED_CORS_ORIGINS))
+_allowed_origins = cast("list[str]", settings.app.ALLOWED_CORS_ORIGINS)
+_allow_credentials = True
+if "*" in _allowed_origins:
+    if settings.app.ENV.lower() == "development":
+        _allowed_origins = [
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:5174",
+            "http://localhost:5173",
+            "http://localhost:5174",
+        ]
+    else:
+        _allow_credentials = False
+
+cors = CORSConfig(
+    allow_origins=_allowed_origins,
+    allow_credentials=_allow_credentials,
+)
 alchemy = SQLAlchemyAsyncConfig(
     engine_instance=settings.db.get_engine(),
     before_send_handler="autocommit",
