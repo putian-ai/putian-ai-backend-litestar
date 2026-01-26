@@ -36,29 +36,27 @@ class SimpleEnvironment(TaskEnvironment):
 
 def main():
     # Check for API keys
-    if not os.getenv("OPENAI_API_KEY"):
-        print("Warning: OPENAI_API_KEY not set (only needed if using OpenAI models)")
-    if not os.getenv("GLM_API_KEY") or not os.getenv("GLM_BASE_URL"):
-        print("Please set GLM_API_KEY and GLM_BASE_URL in your .env file")
+    if not os.getenv("DEEPSEEK_API_KEY") or not os.getenv("DEEPSEEK_BASE_URL"):
+        print("Please set DEEPSEEK_API_KEY and DEEPSEEK_BASE_URL in your .env file")
         return
 
     # 1. Create LLM client(s)
-    glm_model = LitellmModel(
-        model="openai/glm-4.7",
-        api_key=os.getenv("GLM_API_KEY"),
-        base_url=os.getenv("GLM_BASE_URL"),
+    deepseek_model = LitellmModel(
+        model="deepseek/deepseek-chat",
+        api_key=os.getenv("DEEPSEEK_API_KEY"),
+        base_url=os.getenv("DEEPSEEK_BASE_URL"),
     )
 
     # 2. Create ACE components
     # Cast LitellmModel to the LLMClient expected by ACE components.
     # LitellmModel conforms at runtime; this cast resolves the Pylance type error.
-    glm_client = cast("LLMClient", glm_model)
+    deepseek_client = cast("LLMClient", deepseek_model)
 
     adapter = OfflineAdapter(
         playbook=Playbook(),
-        generator=Generator(glm_client),
-        reflector=Reflector(glm_client),
-        curator=Curator(glm_client),
+        generator=Generator(deepseek_client),
+        reflector=Reflector(deepseek_client),
+        curator=Curator(deepseek_client),
     )
 
     # 3. Create training samples

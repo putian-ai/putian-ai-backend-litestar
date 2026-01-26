@@ -45,9 +45,9 @@ def _get_model() -> Any:
     settings = get_settings()
 
     return LitellmModel(
-        model="openai/glm-4.7",
-        api_key=settings.ai.GLM_API_KEY,
-        base_url=settings.ai.GLM_BASE_URL,
+        model="deepseek/deepseek-chat",
+        api_key=settings.ai.DEEPSEEK_API_KEY,
+        base_url=settings.ai.DEEPSEEK_BASE_URL,
     )
 
 

@@ -4,7 +4,7 @@ import random
 from agents import Agent, ItemHelpers, Runner, function_tool
 
 # Use the same LitellmModel configuration used in the project so this
-# small script runs against the GLM model when available via env vars.
+# small script runs against DeepSeek when available via env vars.
 from agents.extensions.models.litellm_model import LitellmModel
 from openai.types.responses import ResponseTextDeltaEvent
 from dotenv import load_dotenv
@@ -18,17 +18,17 @@ def how_many_jokes() -> int:
 
 
 async def main():
-    # Configure GLM model from environment variables (fallbacks to None)
-    glm_model = LitellmModel(
-        model="openai/glm-4.7",
-        api_key=os.getenv("GLM_API_KEY"),
-        base_url=os.getenv("GLM_BASE_URL"),
+    # Configure DeepSeek model from environment variables (fallbacks to None)
+    deepseek_model = LitellmModel(
+        model="deepseek/deepseek-chat",
+        api_key=os.getenv("DEEPSEEK_API_KEY"),
+        base_url=os.getenv("DEEPSEEK_BASE_URL"),
     )
 
     agent = Agent(
         name="Joker",
         instructions="First call the `how_many_jokes` tool, then tell that many jokes.",
-        model=glm_model,
+        model=deepseek_model,
         tools=[how_many_jokes],
     )
 

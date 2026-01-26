@@ -384,12 +384,12 @@ class AISettings:
     VOLCENGINE_BASE_URL: str | None = field(
         default_factory=get_env("VOLCENGINE_BASE_URL", None))
     """VolcEngine Base URL for API endpoints"""
-    GLM_API_KEY: str | None = field(
-        default_factory=get_env("GLM_API_KEY", None))
-    """GLM API Key for GLM models"""
-    GLM_BASE_URL: str | None = field(
-        default_factory=get_env("GLM_BASE_URL", None))
-    """GLM Base URL for API endpoints"""
+    DEEPSEEK_API_KEY: str | None = field(
+        default_factory=get_env("DEEPSEEK_API_KEY", None))
+    """DeepSeek API Key for DeepSeek models"""
+    DEEPSEEK_BASE_URL: str | None = field(
+        default_factory=get_env("DEEPSEEK_BASE_URL", None))
+    """DeepSeek Base URL for API endpoints"""
     MEMORY_ENABLED: bool = field(default_factory=get_env("MEMORY_ENABLED", True))
     """Enable memory pipeline for agent runs."""
     MEMORY_MAX_BULLETS: int = field(

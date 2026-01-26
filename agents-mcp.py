@@ -10,10 +10,10 @@ load_dotenv()
 
 
 async def main() -> None:
-    glm_model = LitellmModel(
-        model="openai/glm-4.7",
-        api_key=os.getenv("GLM_API_KEY"),
-        base_url=os.getenv("GLM_BASE_URL"),
+    deepseek_model = LitellmModel(
+        model="deepseek/deepseek-chat",
+        api_key=os.getenv("DEEPSEEK_API_KEY"),
+        base_url=os.getenv("DEEPSEEK_BASE_URL"),
     )
 
     async with MCPServerStdio(
@@ -27,7 +27,7 @@ async def main() -> None:
         agent = Agent(
             name="Assistant",
             instructions="Use the playwright tool to help user.",
-            model=glm_model,
+            model=deepseek_model,
             mcp_servers=[server],
         )
         result = await Runner.run(agent, "What's the weather in tokyo?")
