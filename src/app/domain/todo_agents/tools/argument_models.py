@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+import json
+from typing import Any
+
+from pydantic import BaseModel, Field, field_validator
 
 __all__ = [
     "AnalyzeScheduleArgs",
@@ -12,6 +15,8 @@ __all__ = [
     "GetTodoListArgs",
     "GetUserDatetimeArgs",
     "GetUserQuotaArgs",
+    "RecurringTodoArgs",
+    "RecurringTodoTemplate",
     "ScheduleConflictResolution",
     "ScheduleTodoArgs",
     "SearchTodoArgs",
@@ -65,6 +70,74 @@ class ScheduleTodoArgs(BaseModel):
     )
     tags: list[str] | None = Field(
         default=None, description="List of tag names to associate with the todo")
+
+
+class RecurringTodoTemplate(BaseModel):
+    item: str | None = Field(default=None, description="Todo item title")
+    description: str | None = Field(default=None, description="Todo description")
+    start_time: str | None = Field(
+        default=None, description="Start time in HH:MM (24-hour) format")
+    duration_minutes: int | None = Field(
+        default=None, description="Duration of the task in minutes")
+    tags: list[str] | None = Field(
+        default=None, description="List of tag names to associate with the todo")
+    importance: str | None = Field(
+        default=None, description="Importance level: none, low, medium, high")
+
+
+class RecurringTodoArgs(BaseModel):
+    series_name: str = Field(..., description="Name of the recurring todo series")
+    series_description: str | None = Field(
+        default=None, description="Description for the recurring todo series")
+    start_date: str = Field(..., description="Start date (YYYY-MM-DD)")
+    end_date: str = Field(..., description="End date (YYYY-MM-DD)")
+    timezone: str | None = Field(
+        default=None,
+        description="Timezone for date parsing (e.g., 'America/New_York', 'Asia/Shanghai'). If not provided, UTC is used.",
+    )
+    rule_type: str = Field(
+        ...,
+        description="Recurrence rule type: daily, weekly, monthly, interval",
+    )
+    rule_payload: str = Field(
+        ...,
+        description=(
+            "Rule payload based on rule_type. "
+            "daily: {\"template\": {...}}; "
+            "weekly: {\"days\": [0-6], \"templates\": {\"0\": {...}}}; "
+            "monthly: {\"day\": 1-31, \"template\": {...}}; "
+            "interval: {\"cycle\": [{\"type\": \"work\", \"template\": {...}}, {\"type\": \"rest\"}]}."
+        ),
+    )
+    default_template: RecurringTodoTemplate | None = Field(
+        default=None, description="Fallback template when rule payload omits fields"
+    )
+    default_start_time: str | None = Field(
+        default=None,
+        description="Fallback start time in HH:MM format (default: 09:00)",
+    )
+    default_duration_minutes: int = Field(
+        default=60, description="Fallback duration in minutes (default: 60)"
+    )
+    default_tags: list[str] | None = Field(
+        default=None, description="Fallback tags when template omits tags"
+    )
+    default_importance: str = Field(
+        default="none", description="Fallback importance level"
+    )
+    max_items: int = Field(
+        default=100, description="Maximum todos to create (default: 100)"
+    )
+
+    @field_validator("rule_payload", mode="before")
+    @classmethod
+    def _normalize_rule_payload(cls, value: Any) -> Any:
+        if isinstance(value, dict):
+            return json.dumps(value)
+        if isinstance(value, str):
+            return value
+        raise ValueError("rule_payload must be a JSON object string")
+        return value
 
 
 class AnalyzeScheduleArgs(BaseModel):
@@ -131,6 +204,10 @@ class GetTodoListArgs(BaseModel):
         default=None, description="Filter by importance level: none, low, medium, high")
     timezone: str | None = Field(
         default=None, description="Timezone for date filtering (e.g., 'America/New_York', 'Asia/Shanghai'). If not provided, UTC is used."
+    )
+    include_series_items: bool = Field(
+        default=False,
+        description="Whether to include items generated from recurring series (default: false)",
     )
 
 
