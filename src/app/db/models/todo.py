@@ -14,6 +14,7 @@ from app.db.models.importance import Importance
 if TYPE_CHECKING:
     from .tag import Tag
     from .todo_tag import TodoTag
+    from .todo_series import TodoSeries
     from .user import User
 
 
@@ -38,6 +39,9 @@ class Todo(UUIDAuditBase):
     user_id: Mapped[UUID] = mapped_column(
         ForeignKey("user_account.id", ondelete="CASCADE"), nullable=False
     )
+    series_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("todo_series.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     start_time: Mapped[datetime] = mapped_column(nullable=False)
     end_time: Mapped[datetime] = mapped_column(nullable=False)
 
@@ -50,6 +54,9 @@ class Todo(UUIDAuditBase):
     )
     tags: AssociationProxy[list[Tag]] = association_proxy(
         "todo_tags", "tag",
+    )
+    series: Mapped[TodoSeries | None] = relationship(
+        back_populates="todos", lazy="joined", uselist=False
     )
 
     user: Mapped[User] = relationship(
