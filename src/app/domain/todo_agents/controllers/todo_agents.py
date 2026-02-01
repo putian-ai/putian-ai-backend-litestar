@@ -101,6 +101,7 @@ class TodoAgentController(Controller):
                 user_id=str(current_user.id),
                 message=user_message,
                 session_id=session_id,
+                user_timezone=data.timezone,
                 agent_name=agent_name,
             )
 
@@ -146,7 +147,7 @@ class TodoAgentController(Controller):
     ) -> ServerSentEvent:
         """Stream todo agent responses as Server-Sent Events."""
 
-        session_id = data.session_id
+        session_id = data.session_id or f"user_{current_user.id}_todo_agent"
         agent_name = data.agent_name or "TodoAssistant"
 
         def _serialize_payload(payload: Any) -> str:
@@ -188,6 +189,7 @@ class TodoAgentController(Controller):
                     user_id=str(current_user.id),
                     message=user_message,
                     session_id=session_id,
+                    user_timezone=data.timezone,
                     agent_name=agent_name,
                 ):
                     event_name = payload.get("event", "message")

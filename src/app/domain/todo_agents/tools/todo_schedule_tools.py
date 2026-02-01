@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo
 
 from app.db import models as m
 from app.db.models.importance import Importance
@@ -15,8 +15,15 @@ from .argument_models import (
     GetTodoListArgs,
     ScheduleTodoArgs,
 )
+from .scheduling_utils import build_blocks_from_todos, find_free_slot_in_blocks
 from .todo_crud_tools import _preprocess_args, _safe_session_rollback
-from .tool_context import get_current_user_id, get_tag_service, get_todo_service
+from .tool_context import (
+    get_current_user_id,
+    get_tag_service,
+    get_todo_service,
+    get_user_timezone,
+)
+from .timezone_utils import resolve_timezone
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -48,16 +55,13 @@ async def get_todo_list_impl(ctx: RunContextWrapper, args: str) -> str:
         return f"Error: Invalid arguments '{args}': {e}"
 
     filters = [m.Todo.user_id == current_user_id]
-    user_tz = ZoneInfo("UTC")
+    timezone_result = resolve_timezone(parsed.timezone, get_user_timezone())
+    if isinstance(timezone_result, str):
+        return timezone_result
+    user_tz, timezone_name = timezone_result
 
-    if parsed.timezone:
-        try:
-            user_tz = ZoneInfo(parsed.timezone)
-        except Exception:
-            return (
-                f"Error: Invalid timezone '{parsed.timezone}'. "
-                "Use a valid timezone name like 'America/New_York' or 'Asia/Shanghai'"
-            )
+    if not parsed.include_series_items:
+        filters.append(m.Todo.series_id.is_(None))
 
     if parsed.from_date:
         try:
@@ -87,18 +91,30 @@ async def get_todo_list_impl(ctx: RunContextWrapper, args: str) -> str:
         todos, total = await todo_service.list_and_count(*filters, LimitOffset(limit=parsed.limit, offset=0))
 
         if not todos:
-            filter_parts = _build_filter_description(parsed)
+            filter_parts = _build_filter_description(parsed, timezone_name=timezone_name)
             filter_text = f" with filters: {', '.join(filter_parts)}" if filter_parts else ""
+            series_summary = await _build_series_summary(todo_service, current_user_id)
+            if series_summary:
+                return f"No todos found{filter_text}.\n\n{series_summary}"
             return f"No todos found{filter_text}."
 
         results = _format_todo_results(todos, user_tz)
-        filter_parts = _build_filter_description(parsed, include_timezone=True)
+        filter_parts = _build_filter_description(
+            parsed,
+            include_timezone=True,
+            timezone_name=timezone_name,
+        )
         filter_text = f" with filters: {', '.join(filter_parts)}" if filter_parts else ""
 
-        return (
+        response = (
             f"Your todos{filter_text} (showing {min(len(todos), parsed.limit)} of {total} total):\n\n"
             + "\n\n".join(results)
         )
+        if not parsed.include_series_items:
+            series_summary = await _build_series_summary(todo_service, current_user_id)
+            if series_summary:
+                response += f"\n\n{series_summary}"
+        return response
     except Exception as e:
         return f"Error getting todo list: {e!s}"
 
@@ -117,7 +133,11 @@ async def analyze_schedule_impl(ctx: RunContextWrapper, args: str) -> str:
         return f"Error: Invalid arguments '{args}': {e}"
 
     try:
-        user_tz, start_date = _parse_timezone_and_date(parsed.timezone, parsed.target_date)
+        timezone_result = resolve_timezone(parsed.timezone, get_user_timezone())
+        if isinstance(timezone_result, str):
+            return timezone_result
+        user_tz, timezone_name = timezone_result
+        start_date = _parse_target_date(parsed.target_date, user_tz)
         todos = await _get_todos_for_date_range(start_date, parsed.include_days, todo_service, current_user_id)
         analysis = _analyze_schedule_by_days(todos, start_date, parsed.include_days, user_tz)
 
@@ -126,11 +146,11 @@ async def analyze_schedule_impl(ctx: RunContextWrapper, args: str) -> str:
             + "\n\n".join(analysis)
         )
 
-        if parsed.timezone and str(user_tz) != "UTC":
-            result += f"\n\n🌍 Times shown in {parsed.timezone} timezone"
+        if timezone_name and str(user_tz) != "UTC":
+            result += f"\n\n🌍 Times shown in {timezone_name} timezone"
 
         return result
-    except (ValueError, ZoneInfoNotFoundError) as e:
+    except ValueError as e:
         return f"Error: {e!s}"
     except Exception as e:
         return f"Error analyzing schedule: {e!s}"
@@ -152,7 +172,11 @@ async def schedule_todo_impl(ctx: RunContextWrapper, args: str) -> str:
         return f"Error: Invalid arguments '{args}': {e}"
 
     try:
-        user_tz, target_date = _determine_schedule_target_date(parsed.timezone, parsed.target_date)
+        timezone_result = resolve_timezone(parsed.timezone, get_user_timezone())
+        if isinstance(timezone_result, str):
+            return timezone_result
+        user_tz, _timezone_name = timezone_result
+        user_tz, target_date = _determine_schedule_target_date(user_tz, parsed.target_date)
         existing = await _get_existing_todos_for_day(target_date, user_tz, todo_service, current_user_id)
         suggested = _find_optimal_time_slot(target_date, parsed, existing, user_tz)
 
@@ -167,7 +191,7 @@ async def schedule_todo_impl(ctx: RunContextWrapper, args: str) -> str:
             current_user_id,
         )
         return _format_scheduling_success(todo, suggested, user_tz, associated_tags)
-    except (ValueError, ZoneInfoNotFoundError) as e:
+    except ValueError as e:
         return f"Error: {e!s}"
     except Exception as e:
         return f"Error scheduling todo: {e!s}"
@@ -189,15 +213,20 @@ async def batch_update_schedule_impl(ctx: RunContextWrapper, args: str) -> str:
     if not parsed.confirm:
         return _generate_update_preview(parsed)
 
-    user_tz = _get_user_timezone(parsed.timezone)
-    if isinstance(user_tz, str):
-        return user_tz
+    timezone_result = resolve_timezone(parsed.timezone, get_user_timezone())
+    if isinstance(timezone_result, str):
+        return timezone_result
+    user_tz, _timezone_name = timezone_result
 
     success, failed = await _apply_schedule_updates(parsed.updates, user_tz, todo_service, current_user_id)
     return _format_update_results(success, failed)
 
 
-def _build_filter_description(parsed: GetTodoListArgs, include_timezone: bool = False) -> list[str]:
+def _build_filter_description(
+    parsed: GetTodoListArgs,
+    include_timezone: bool = False,
+    timezone_name: str | None = None,
+) -> list[str]:
     parts = []
     if parsed.from_date:
         parts.append(f"from {parsed.from_date}")
@@ -205,8 +234,8 @@ def _build_filter_description(parsed: GetTodoListArgs, include_timezone: bool = 
         parts.append(f"to {parsed.to_date}")
     if parsed.importance:
         parts.append(f"importance: {parsed.importance}")
-    if include_timezone and parsed.timezone:
-        parts.append(f"timezone: {parsed.timezone}")
+    if include_timezone and timezone_name:
+        parts.append(f"timezone: {timezone_name}")
     return parts
 
 
@@ -232,15 +261,7 @@ def _format_todo_results(todos, user_tz: ZoneInfo) -> list[str]:
     return results
 
 
-def _parse_timezone_and_date(timezone_str: str | None, target_date_str: str | None) -> tuple[ZoneInfo, datetime]:
-    user_tz = ZoneInfo("UTC")
-    if timezone_str:
-        try:
-            user_tz = ZoneInfo(timezone_str)
-        except ZoneInfoNotFoundError as e:
-            msg = f"Invalid timezone '{timezone_str}'"
-            raise ValueError(msg) from e
-
+def _parse_target_date(target_date_str: str | None, user_tz: ZoneInfo) -> datetime:
     if target_date_str:
         try:
             start_date = datetime.strptime(target_date_str, "%Y-%m-%d").replace(tzinfo=user_tz)
@@ -249,8 +270,7 @@ def _parse_timezone_and_date(timezone_str: str | None, target_date_str: str | No
             raise ValueError(msg) from e
     else:
         start_date = datetime.now(user_tz).replace(hour=0, minute=0, second=0, microsecond=0)
-
-    return user_tz, start_date
+    return start_date
 
 
 async def _get_todos_for_date_range(
@@ -347,15 +367,7 @@ def _find_free_time_slots(day_todos: list, current_date: datetime, user_tz: Zone
     return free
 
 
-def _determine_schedule_target_date(timezone_str: str | None, target_date_str: str | None) -> tuple[ZoneInfo, datetime]:
-    user_tz = ZoneInfo("UTC")
-    if timezone_str:
-        try:
-            user_tz = ZoneInfo(timezone_str)
-        except ZoneInfoNotFoundError as e:
-            msg = f"Invalid timezone '{timezone_str}'"
-            raise ValueError(msg) from e
-
+def _determine_schedule_target_date(user_tz: ZoneInfo, target_date_str: str | None) -> tuple[ZoneInfo, datetime]:
     if target_date_str:
         try:
             target_date = datetime.strptime(target_date_str, "%Y-%m-%d").replace(tzinfo=user_tz)
@@ -539,25 +551,8 @@ def _find_free_slot(
     slot_start = target_date.replace(hour=start_hour, minute=0)
     slot_end = target_date.replace(hour=end_hour, minute=0)
     duration_delta = timedelta(minutes=duration_minutes)
-
-    current = slot_start
-    for todo in existing:
-        if todo.start_time and todo.end_time:
-            t_start = todo.start_time.astimezone(user_tz)
-            t_end = todo.end_time.astimezone(user_tz)
-        elif todo.alarm_time:
-            t_start = todo.alarm_time.astimezone(user_tz)
-            t_end = t_start + timedelta(hours=1)
-        else:
-            continue
-
-        if current + duration_delta <= t_start:
-            return current
-        current = max(current, t_end)
-
-    if current + duration_delta <= slot_end:
-        return current
-    return None
+    blocks = build_blocks_from_todos(existing, user_tz)
+    return find_free_slot_in_blocks(slot_start, slot_end, duration_delta, blocks)
 
 
 def _detect_scheduling_conflicts(
@@ -591,15 +586,6 @@ def _generate_update_preview(parsed: BatchUpdateScheduleArgs) -> str:
     preview += "⚠️  To confirm these changes, set 'confirm: true' in your request."
     return preview
 
-
-def _get_user_timezone(timezone_str: str | None) -> ZoneInfo | str:
-    user_tz = ZoneInfo("UTC")
-    if timezone_str:
-        try:
-            user_tz = ZoneInfo(timezone_str)
-        except ZoneInfoNotFoundError:
-            return f"Error: Invalid timezone '{timezone_str}'"
-    return user_tz
 
 
 async def _apply_schedule_updates(
@@ -647,3 +633,36 @@ def _format_update_results(successful: list[str], failed: list[str]) -> str:
         result += "Failed updates:\n" + "\n".join(failed)
 
     return result
+
+
+async def _build_series_summary(todo_service, current_user_id: UUID) -> str | None:
+    session = getattr(todo_service.repository, "session", None)
+    if session is None:
+        return None
+
+    from sqlalchemy import func, select
+
+    count_subquery = (
+        select(m.Todo.series_id, func.count(m.Todo.id).label("item_count"))
+        .where(m.Todo.series_id.is_not(None))
+        .group_by(m.Todo.series_id)
+        .subquery()
+    )
+    series_rows = await session.execute(
+        select(m.TodoSeries, func.coalesce(count_subquery.c.item_count, 0))
+        .outerjoin(count_subquery, count_subquery.c.series_id == m.TodoSeries.id)
+        .where(m.TodoSeries.user_id == current_user_id)
+    )
+    series_data = list(series_rows.all())
+    if not series_data:
+        return None
+
+    lines = [
+        "Recurring series (collapsed by default):",
+        *[
+            f"• {series.name} ({series.start_date} to {series.end_date}) - {count} items"
+            for series, count in series_data
+        ],
+        "Use include_series_items=true to show all recurring items.",
+    ]
+    return "\n".join(lines)

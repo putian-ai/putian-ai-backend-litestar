@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo, available_timezones
 
 from agents import RunContextWrapper
 
+from .tool_context import get_user_timezone
 __all__ = [
     "get_user_datetime_impl",
 ]
@@ -93,7 +94,10 @@ async def get_user_datetime_impl(ctx: RunContextWrapper, args: str) -> str:
         except json.JSONDecodeError:
             parsed_args = {}
 
-        timezone_str = parsed_args.get("timezone", "UTC")
+        # Prefer context timezone to avoid tool call overrides.
+        timezone_str = get_user_timezone()
+        if not timezone_str:
+            timezone_str = parsed_args.get("timezone") or "UTC"
 
         # Validate and parse timezone
         try:
