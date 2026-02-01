@@ -72,6 +72,7 @@ class TodoAgentService:
         user_id: str,
         message: str,
         session_id: str | None = None,
+        user_timezone: str | None = None,
         agent_name: str = "TodoAssistant",
     ) -> str:
         """Send a message to the todo agent and get a response with persistent conversation history.
@@ -80,6 +81,7 @@ class TodoAgentService:
             user_id: ID of the user sending the message
             message: The message to send to the agent
             session_id: Optional session ID. If None, a new unique session ID will be generated
+            user_timezone: Optional user timezone string to use as default in tools
             agent_name: Optional agent name to route to a specialized agent. Defaults to TodoAssistant.
 
         Returns:
@@ -103,6 +105,7 @@ class TodoAgentService:
             self.todo_service,
             self.tag_service,
             UUID(user_id),
+            user_timezone=user_timezone,
             quota_service=self.quota_service,
             rate_limit_service=self.rate_limit_service,
         )
@@ -131,6 +134,7 @@ class TodoAgentService:
         user_id: str,
         message: str,
         session_id: str | None = None,
+        user_timezone: str | None = None,
         *,
         history_limit: int = 10,
         agent_name: str = "TodoAssistant",
@@ -141,6 +145,7 @@ class TodoAgentService:
             user_id: ID of the user sending the message.
             message: Message to send to the agent.
             session_id: Optional existing session identifier.
+            user_timezone: Optional user timezone string to use as default in tools.
             history_limit: Reserved for compatibility; streaming no longer emits
                 history events.
             agent_name: Optional agent name to route to a specialized agent. Defaults to TodoAssistant.
@@ -168,6 +173,7 @@ class TodoAgentService:
             self.todo_service,
             self.tag_service,
             UUID(user_id),
+            user_timezone=user_timezone,
             quota_service=self.quota_service,
             rate_limit_service=self.rate_limit_service,
         )
