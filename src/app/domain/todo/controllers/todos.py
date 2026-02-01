@@ -55,6 +55,10 @@ class TodoController(Controller):
             query="end_time_from", description="Filter todos with end_time after this datetime (ISO format)")] = None,
         end_time_to: Annotated[datetime | None, Parameter(
             query="end_time_to", description="Filter todos with end_time before this datetime (ISO format)")] = None,
+        include_series_items: Annotated[bool, Parameter(
+            query="include_series_items",
+            description="Include items generated from recurring series (default: false)",
+        )] = False,
     ) -> OffsetPagination[TodoModel]:
         """List all todo items with optional start_time and end_time filtering."""
         user_filter = m.Todo.user_id == current_user.id
@@ -69,6 +73,8 @@ class TodoController(Controller):
             additional_filters.append(m.Todo.end_time >= end_time_from)
         if end_time_to:
             additional_filters.append(m.Todo.end_time <= end_time_to)
+        if not include_series_items:
+            additional_filters.append(m.Todo.series_id.is_(None))
 
         all_filters = [user_filter] + additional_filters + list(filters)
         results, total = await todo_service.list_and_count(*all_filters)

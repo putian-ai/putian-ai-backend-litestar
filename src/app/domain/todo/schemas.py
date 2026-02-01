@@ -25,6 +25,7 @@ class TodoModel(PydanticBaseModel):
     importance: Importance
     user_id: UUID
     tags: list[str] | None = None
+    series_id: UUID | None = None
 
     @field_validator("tags", mode="before")
     @classmethod

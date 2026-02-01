@@ -39,6 +39,10 @@ class AgentTodoRequest(PydanticBaseModel):
         None,
         description="Optional agent name to route the request (defaults to TodoAssistant)",
     )
+    timezone: str | None = Field(
+        None,
+        description="Optional user timezone (e.g., 'America/New_York', 'Asia/Shanghai') used as default by tools.",
+    )
 
 
 class AgentTodoResponse(PydanticBaseModel):

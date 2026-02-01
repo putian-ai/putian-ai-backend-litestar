@@ -8,6 +8,7 @@ from .role import Role
 from .session_message import MessageRole, SessionMessage
 from .tag import Tag
 from .todo import Todo
+from .todo_series import TodoSeries, TodoSeriesRuleType
 from .todo_tag import TodoTag
 from .user import User
 from .user_role import UserRole
@@ -24,6 +25,8 @@ __all__ = (
     "SessionMessage",
     "Tag",
     "Todo",
+    "TodoSeries",
+    "TodoSeriesRuleType",
     "TodoTag",
     "User",
     "UserOauthAccount",
