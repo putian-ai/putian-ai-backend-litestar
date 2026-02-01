@@ -37,6 +37,7 @@ def fx_raw_users() -> list[User | dict[str, Any]]:
             "password": "Test_Password1!",
             "is_superuser": True,
             "is_active": True,
+            "is_verified": True,
         },
         {
             "id": "5ef29f3c-3560-4d15-ba6b-a2e5c721e4d2",
@@ -45,6 +46,7 @@ def fx_raw_users() -> list[User | dict[str, Any]]:
             "password": "Test_Password2!",
             "is_superuser": False,
             "is_active": True,
+            "is_verified": True,
         },
         {
             "id": "5ef29f3c-3560-4d15-ba6b-a2e5c721e999",
@@ -53,6 +55,7 @@ def fx_raw_users() -> list[User | dict[str, Any]]:
             "password": "Test_Password3!",
             "is_superuser": False,
             "is_active": True,
+            "is_verified": True,
         },
         {
             "id": "6ef29f3c-3560-4d15-ba6b-a2e5c721e4d3",
@@ -61,6 +64,7 @@ def fx_raw_users() -> list[User | dict[str, Any]]:
             "password": "Test_Password3!",
             "is_superuser": False,
             "is_active": True,
+            "is_verified": True,
         },
         {
             "id": "7ef29f3c-3560-4d15-ba6b-a2e5c721e4e1",

@@ -13,7 +13,13 @@ from app.db import models as m
 from app.db.models.importance import Importance
 
 from .argument_models import CreateTodoArgs, DeleteTodoArgs, UpdateTodoArgs
-from .tool_context import get_current_user_id, get_tag_service, get_todo_service
+from .tool_context import (
+    get_current_user_id,
+    get_tag_service,
+    get_todo_service,
+    get_user_timezone,
+)
+from .timezone_utils import resolve_timezone
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -162,7 +168,10 @@ async def create_todo_impl(ctx: RunContextWrapper, args: str) -> str:
 
     args = _preprocess_args(args)
     parsed = CreateTodoArgs.model_validate_json(args)
-    user_tz = ZoneInfo(parsed.timezone) if parsed.timezone else ZoneInfo("UTC")
+    timezone_result = resolve_timezone(parsed.timezone, get_user_timezone())
+    if isinstance(timezone_result, str):
+        return timezone_result
+    user_tz, _ = timezone_result
 
     alarm_time_obj = None
     if parsed.alarm_time:
@@ -273,16 +282,10 @@ async def update_todo_impl(ctx: RunContextWrapper, args: str) -> str:
         return f"Error finding todo: {e!s}"
 
     update_data: dict[str, object] = {}
-    user_tz = ZoneInfo("UTC")
-
-    if parsed.timezone:
-        try:
-            user_tz = ZoneInfo(parsed.timezone)
-        except Exception:
-            return (
-                f"Error: Invalid timezone '{parsed.timezone}'. "
-                "Use a valid timezone name like 'America/New_York' or 'Asia/Shanghai'"
-            )
+    timezone_result = resolve_timezone(parsed.timezone, get_user_timezone())
+    if isinstance(timezone_result, str):
+        return timezone_result
+    user_tz, _ = timezone_result
 
     if parsed.item is not None:
         update_data["item"] = parsed.item

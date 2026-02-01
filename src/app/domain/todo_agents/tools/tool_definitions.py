@@ -21,10 +21,12 @@ from .argument_models import (
     GetTodoListArgs,
     GetUserDatetimeArgs,
     GetUserQuotaArgs,
+    RecurringTodoArgs,
     ScheduleTodoArgs,
     UpdateTodoArgs,
 )
 from .todo_crud_tools import create_todo_impl, delete_todo_impl, update_todo_impl
+from .todo_recurring_tools import create_recurring_todos_impl
 from .todo_schedule_tools import (
     analyze_schedule_impl,
     batch_update_schedule_impl,
@@ -73,6 +75,15 @@ def _build_tool_objects() -> dict[str, FunctionTool]:
         on_invoke_tool=create_todo_impl,
     )
 
+    create_recurring_todos_tool = FunctionTool(
+        name="create_recurring_todos",
+        description=(
+            "Create a recurring todo series within a date range, auto-resolving conflicts into free slots."
+        ),
+        params_json_schema=RecurringTodoArgs.model_json_schema(),
+        on_invoke_tool=create_recurring_todos_impl,
+    )
+
     delete_todo_tool = FunctionTool(
         name="delete_todo",
         description="Delete a todo item using the TodoService.",
@@ -89,7 +100,7 @@ def _build_tool_objects() -> dict[str, FunctionTool]:
 
     get_todo_list_tool = FunctionTool(
         name="get_todo_list",
-        description="Get a list of all todos for the current user.",
+        description="Get a list of todos for the current user (recurring series items are collapsed by default).",
         params_json_schema=GetTodoListArgs.model_json_schema(),
         on_invoke_tool=get_todo_list_impl,
     )
@@ -119,6 +130,7 @@ def _build_tool_objects() -> dict[str, FunctionTool]:
         "get_user_datetime": get_user_datetime_tool,
         "get_user_quota": get_user_quota_tool,
         "create_todo": create_todo_tool,
+        "create_recurring_todos": create_recurring_todos_tool,
         "delete_todo": delete_todo_tool,
         "update_todo": update_todo_tool,
         "get_todo_list": get_todo_list_tool,
@@ -135,6 +147,7 @@ def _get_universal_tools(tool_map: dict[str, FunctionTool]) -> list[FunctionTool
 def _get_crud_tools(tool_map: dict[str, FunctionTool]) -> list[FunctionTool]:
     return [
         tool_map["create_todo"],
+        tool_map["create_recurring_todos"],
         tool_map["delete_todo"],
         tool_map["update_todo"],
     ]
