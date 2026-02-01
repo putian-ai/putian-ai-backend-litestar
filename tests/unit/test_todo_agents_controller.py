@@ -24,12 +24,16 @@ class StubTodoAgentService:
         user_id: str,
         message: str,
         session_id: str,
+        user_timezone: str | None = None,
+        agent_name: str = "TodoAssistant",
     ) -> "AsyncGenerator[dict[str, Any], None]":
         self.calls.append(
             {
                 "user_id": user_id,
                 "message": message,
                 "session_id": session_id,
+                "user_timezone": user_timezone,
+                "agent_name": agent_name,
             }
         )
 
@@ -46,12 +50,16 @@ class ErrorStubTodoAgentService(StubTodoAgentService):
         user_id: str,
         message: str,
         session_id: str,
+        user_timezone: str | None = None,
+        agent_name: str = "TodoAssistant",
     ) -> "AsyncGenerator[dict[str, Any], None]":
         self.calls.append(
             {
                 "user_id": user_id,
                 "message": message,
                 "session_id": session_id,
+                "user_timezone": user_timezone,
+                "agent_name": agent_name,
             }
         )
 
@@ -73,12 +81,10 @@ async def test_agent_create_todo_stream_success() -> None:
         session_name=None,
     )
 
-    bound_handler = TodoAgentController.agent_create_todo_stream.__get__(  # type: ignore[attr-defined]
-        controller,
-        TodoAgentController,
-    )
+    handler = TodoAgentController.agent_create_todo_stream
 
-    response = await bound_handler(  # type: ignore[arg-type]
+    response = await handler.fn(  # type: ignore[attr-defined]
+        controller,
         current_user=user,
         data=request,
         todo_agent_service=service,
@@ -93,6 +99,8 @@ async def test_agent_create_todo_stream_success() -> None:
             "user_id": "123",
             "message": "Create a todo",
             "session_id": "user_123_todo_agent",
+            "user_timezone": None,
+            "agent_name": "TodoAssistant",
         }
     ]
 
@@ -109,12 +117,10 @@ async def test_agent_create_todo_stream_missing_message() -> None:
         session_name=None,
     )
 
-    bound_handler = TodoAgentController.agent_create_todo_stream.__get__(  # type: ignore[attr-defined]
-        controller,
-        TodoAgentController,
-    )
+    handler = TodoAgentController.agent_create_todo_stream
 
-    response = await bound_handler(  # type: ignore[arg-type]
+    response = await handler.fn(  # type: ignore[attr-defined]
+        controller,
         current_user=user,
         data=request,
         todo_agent_service=service,

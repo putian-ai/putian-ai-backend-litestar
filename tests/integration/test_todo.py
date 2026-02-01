@@ -7,42 +7,65 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.anyio
 
+DEFAULT_START_TIME = "2026-02-01T09:00:00Z"
+DEFAULT_END_TIME = "2026-02-01T10:00:00Z"
+
+
+async def _create_todo(client: "AsyncClient", headers: dict[str, str], item: str = "Test Todo") -> dict:
+    response = await client.post(
+        "/todos",
+        json={
+            "item": item,
+            "description": "This is a test todo item.",
+            "start_time": DEFAULT_START_TIME,
+            "end_time": DEFAULT_END_TIME,
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201
+    return response.json()
+
 
 async def test_todo_list(client: "AsyncClient", superuser_token_headers: dict[str, str]) -> None:
-    response = await client.get("/api/todos", headers=superuser_token_headers)
+    await _create_todo(client, superuser_token_headers, item="List Todo")
+    response = await client.get("/todos", headers=superuser_token_headers)
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
-    assert len(response.json()) > 0
+    payload = response.json()
+    assert isinstance(payload, dict)
+    assert isinstance(payload.get("items"), list)
+    assert len(payload.get("items", [])) > 0
 
 
 async def test_todo_create(client: "AsyncClient", superuser_token_headers: dict[str, str]) -> None:
-    response = await client.post(
-        "/api/todos",
-        json={"title": "Test Todo", "description": "This is a test todo item."},
-        headers=superuser_token_headers,
-    )
-    assert response.status_code == 201
-    assert response.json()["title"] == "Test Todo"
+    created = await _create_todo(client, superuser_token_headers, item="Test Todo")
+    assert created["item"] == "Test Todo"
 
 
 async def test_todo_get(client: "AsyncClient", superuser_token_headers: dict[str, str]) -> None:
-    response = await client.get("/api/todos/7b3cfad7-6772-4fb2-a550-c12d9771cd30", headers=superuser_token_headers)
+    created = await _create_todo(client, superuser_token_headers, item="Get Todo")
+    response = await client.get(f"/todos/{created['id']}", headers=superuser_token_headers)
     assert response.status_code == 200
-    assert response.json()["id"] == "7b3cfad7-6772-4fb2-a550-c12d9771cd30"
+    assert response.json()["id"] == created["id"]
 
 
 async def test_todo_update(client: "AsyncClient", superuser_token_headers: dict[str, str]) -> None:
+    created = await _create_todo(client, superuser_token_headers, item="Update Todo")
     response = await client.patch(
-        "/api/todos/7b3cfad7-6772-4fb2-a550-c12d9771cd30",
-        json={"title": "Updated Todo",
-              "description": "This todo has been updated."},
+        f"/todos/{created['id']}",
+        json={
+            "item": "Updated Todo",
+            "description": "This todo has been updated.",
+            "start_time": DEFAULT_START_TIME,
+            "end_time": DEFAULT_END_TIME,
+        },
         headers=superuser_token_headers,
     )
     assert response.status_code == 200
-    assert response.json()["title"] == "Updated Todo"
+    assert response.json()["item"] == "Updated Todo"
     assert response.json()["description"] == "This todo has been updated."
 
 
 async def test_todo_delete(client: "AsyncClient", superuser_token_headers: dict[str, str]) -> None:
-    response = await client.delete("/api/todos/7b3cfad7-6772-4fb2-a550-c12d9771cd30", headers=superuser_token_headers)
-    assert response.status_code == 204
+    created = await _create_todo(client, superuser_token_headers, item="Delete Todo")
+    response = await client.delete(f"/todos/{created['id']}", headers=superuser_token_headers)
+    assert response.status_code == 200
