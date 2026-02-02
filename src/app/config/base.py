@@ -206,7 +206,7 @@ class LogSettings:
     """Logger configuration"""
 
     # https://stackoverflow.com/a/1845097/6560549
-    EXCLUDE_PATHS: str = r"\A(?!x)x"
+    EXCLUDE_PATHS: str = field(default_factory=get_env("LOG_EXCLUDE_PATHS", r"\A(?!x)x"))
     """Regex to exclude paths from logging."""
     HTTP_EVENT: str = "HTTP"
     """Log event name for logs from Litestar handlers."""

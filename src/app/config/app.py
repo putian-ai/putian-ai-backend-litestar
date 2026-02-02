@@ -122,6 +122,12 @@ log = StructlogConfig(
         ),
     ),
     middleware_logging_config=LoggingMiddlewareConfig(
+        exclude=settings.log.EXCLUDE_PATHS,
+        include_compressed_body=settings.log.INCLUDE_COMPRESSED_BODY,
+        request_cookies_to_obfuscate=settings.log.OBFUSCATE_COOKIES,
+        request_headers_to_obfuscate=settings.log.OBFUSCATE_HEADERS,
+        response_cookies_to_obfuscate=settings.log.OBFUSCATE_COOKIES,
+        response_headers_to_obfuscate=settings.log.OBFUSCATE_HEADERS,
         request_log_fields=settings.log.REQUEST_FIELDS,
         response_log_fields=settings.log.RESPONSE_FIELDS,
     ),

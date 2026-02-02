@@ -13,9 +13,9 @@ from app.db.models.importance import Importance
 
 from .argument_models import RecurringTodoArgs, RecurringTodoTemplate
 from .scheduling_utils import TimeBlock, find_free_slot_in_blocks, has_conflict
+from .timezone_utils import resolve_timezone
 from .todo_crud_tools import _preprocess_args, _safe_session_rollback
 from .tool_context import get_current_user_id, get_tag_service, get_todo_service, get_user_timezone
-from .timezone_utils import resolve_timezone
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -406,7 +406,9 @@ def _build_occurrences(
             target_day = raw_day
             if raw_day > last_day:
                 target_day = last_day
-                month_adjustments.append(f"{year:04d}-{month:02d}-{raw_day:02d} -> {year:04d}-{month:02d}-{last_day:02d}")
+                month_adjustments.append(
+                    f"{year:04d}-{month:02d}-{raw_day:02d} -> {year:04d}-{month:02d}-{last_day:02d}"
+                )
             target = date(year, month, target_day)
             if start_date <= target <= end_date:
                 occurrences.append(Occurrence(target, template))
@@ -658,9 +660,7 @@ def _format_recurring_result(
     for todo in created[:5]:
         start_local = todo.start_time.astimezone(user_tz)
         end_local = todo.end_time.astimezone(user_tz)
-        sample_lines.append(
-            f"  • {start_local.strftime('%Y-%m-%d %H:%M')} - {end_local.strftime('%H:%M')} {todo.item}"
-        )
+        sample_lines.append(f"  • {start_local.strftime('%Y-%m-%d %H:%M')} - {end_local.strftime('%H:%M')} {todo.item}")
     if sample_lines:
         lines.append("Samples (up to 5):\n" + "\n".join(sample_lines))
 
