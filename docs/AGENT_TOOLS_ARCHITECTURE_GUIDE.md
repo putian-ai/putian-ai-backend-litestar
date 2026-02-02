@@ -11,13 +11,12 @@
 系统支持多种代理配置以满足不同场景：
 
 - **TodoAssistant（默认）**：全功能代理，覆盖 CRUD + 日程分析 + 配额查询。
-- **TodoCrudAssistant**：仅负责创建/更新/删除待办（写操作）。
 - **TodoScheduleAssistant**：仅负责列出待办、分析日程与给出“规划方案”，不做任何写操作。
 - **TodoSupportAssistant**：负责配额与账户状态类问题。
-- **TodoOrchestratorAgent**：协调多个子代理的总控代理，适合复杂多意图请求。
+- **TodoOrchestratorAgent**：协调子代理并直接调用 CRUD 工具完成写操作，适合复杂多意图请求。
 
 关键约束：
-- 日程规划与写入分离：规划由 Schedule 代理完成，写入必须由 CRUD 代理执行。
+- 日程规划与写入分离：规划由 Schedule 代理完成，写入由 TodoOrchestratorAgent 通过 CRUD 工具执行。
 - 所有返回内容不暴露用户或待办的 UUID。
 
 ## 工具体系与能力边界
@@ -79,7 +78,7 @@
 字段说明：
 - `messages`：对话消息列表，服务仅使用最后一条用户消息作为本次输入。
 - `session_id`：可选，复用会话历史；未提供会自动生成。
-- `agent_name`：可选，指定代理（如 `TodoScheduleAssistant`）。
+- `agent_name`：可选，指定代理（可选值：`TodoAssistant`、`TodoScheduleAssistant`、`TodoSupportAssistant`、`TodoOrchestratorAgent`）。
 
 ## 流式事件协议（SSE）
 流式接口将按事件类型输出结构化数据：
@@ -101,6 +100,6 @@
 - `GET /usage-stats` 提供当前月使用统计，便于产品侧展示额度状态。
 
 ## 典型产品流程
-- **日程规划**：用户提出时间安排需求 → 调用 Schedule 代理生成规划 → 由 CRUD 代理确认并创建待办。
+- **日程规划**：用户提出时间安排需求 → 调用 Schedule 代理生成规划 → 由 TodoOrchestratorAgent 确认并通过 CRUD 工具创建待办。
 - **快速记录**：用户输入简单待办 → 由 TodoAssistant 直接创建，并自动避免时间冲突。
 - **配额查询**：用户询问使用情况 → 由 Support 代理返回额度与剩余。
