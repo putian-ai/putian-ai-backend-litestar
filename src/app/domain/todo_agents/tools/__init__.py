@@ -7,7 +7,6 @@ organized into focused modules for better maintainability.
 from .agent_factory import (
     get_agent_by_name,
     get_todo_agent,
-    get_todo_crud_agent,
     get_todo_schedule_agent,
     get_todo_support_agent,
 )
@@ -21,7 +20,6 @@ from .universal_tools import get_user_datetime_impl
 
 __all__ = [
     "get_todo_agent",
-    "get_todo_crud_agent",
     "get_todo_schedule_agent",
     "get_todo_support_agent",
     "get_agent_by_name",
