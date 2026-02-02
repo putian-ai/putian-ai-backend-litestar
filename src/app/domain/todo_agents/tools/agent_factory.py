@@ -14,7 +14,6 @@ from app.config import get_settings
 
 from .system_instructions import (
     ORCHESTRATOR_SYSTEM_INSTRUCTIONS,
-    TODO_CRUD_INSTRUCTIONS,
     TODO_SCHEDULE_INSTRUCTIONS,
     TODO_SUPPORT_INSTRUCTIONS,
     TODO_SYSTEM_INSTRUCTIONS,
@@ -34,7 +33,6 @@ __all__ = [
     "get_agent_by_name",
     "get_orchestrator_agent",
     "get_todo_agent",
-    "get_todo_crud_agent",
     "get_todo_schedule_agent",
     "get_todo_support_agent",
 ]
@@ -72,17 +70,6 @@ def get_todo_agent() -> "Agent":
     return _build_agent("TodoAssistant", tools)
 
 
-def get_todo_crud_agent() -> "Agent":
-    """Create a CRUD-focused todo agent (create, update, delete)."""
-    tools = cast("list[Tool]", list(get_crud_tool_definitions()))
-    return _build_agent(
-        "TodoCrudAssistant",
-        tools,
-        instructions=TODO_CRUD_INSTRUCTIONS,
-        handoff_description="Specialist for creating, updating, and deleting todo items",
-    )
-
-
 def get_todo_schedule_agent() -> "Agent":
     """Create a scheduling/search todo agent."""
     tools = cast("list[Tool]", list(get_schedule_tool_definitions()))
@@ -112,20 +99,11 @@ def get_orchestrator_agent() -> "Agent":
     as a tool that the orchestrator can call to handle specific types of requests.
     """
     # Create sub-agents
-    crud_agent = get_todo_crud_agent()
     schedule_agent = get_todo_schedule_agent()
     support_agent = get_todo_support_agent()
 
     # Convert sub-agents to tools
     orchestrator_tools = [
-        crud_agent.as_tool(
-            tool_name="delegate_to_crud_assistant",
-            tool_description=(
-                "Delegate to the CRUD assistant for creating, updating, or deleting todo items. "
-                "Use this tool when the user wants to add a new todo, modify an existing todo, "
-                "or remove a todo from their list."
-            ),
-        ),
         schedule_agent.as_tool(
             tool_name="delegate_to_schedule_assistant",
             tool_description=(
@@ -144,6 +122,7 @@ def get_orchestrator_agent() -> "Agent":
         ),
     ]
 
+    orchestrator_tools.extend(get_crud_tool_definitions(include_universal=False))
     orchestrator_tools.extend(get_universal_tool_definitions())
 
     return Agent(
@@ -154,11 +133,15 @@ def get_orchestrator_agent() -> "Agent":
     )
 
 
+def get_todo_crud_agent() -> "Agent":
+    """Deprecated shim: CRUD sub-agent removed; use get_orchestrator_agent instead."""
+    return get_orchestrator_agent()
+
+
 def get_agent_by_name(name: str) -> "Agent":
     """Create an agent instance by name, falling back to the default."""
     builders = {
         "TodoAssistant": get_todo_agent,
-        "TodoCrudAssistant": get_todo_crud_agent,
         "TodoScheduleAssistant": get_todo_schedule_agent,
         "TodoSupportAssistant": get_todo_support_agent,
         "TodoOrchestratorAgent": get_orchestrator_agent,
