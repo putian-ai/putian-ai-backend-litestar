@@ -4,26 +4,24 @@ This document describes the development-only authentication bypass and the local
 
 ## Purpose
 
-In development mode, the API allows requests without a JWT token by injecting a fixed test user. This enables local debugging and E2E flows without a login step while keeping production behavior unchanged.
+In development mode, the API allows requests without a JWT token by resolving the user from a dedicated request header.
+This enables local debugging and E2E flows without a login step while keeping production behavior unchanged.
 
 ## Development Mode Behavior
 
-When `APP_ENV=development` and a request does not provide a JWT token (via `Authorization` header or auth cookie), the authentication middleware injects a development user:
+When `APP_ENV=development` and a request does not provide a JWT token (via `Authorization` header or auth cookie), the authentication middleware requires:
 
-- Email: `dev@local.test`
-- Name: `Development User`
-- Status: `is_active=True`, `is_verified=True`
-- `verified_at` is set when missing to keep data consistent.
+- Header: `X-Dev-User-Id: <uuid>`
+- User must exist in database and be active + verified.
 
-If the user does not exist, it is created automatically. If it exists but is not active/verified or missing a name, the record is updated to satisfy development assumptions.
+If the header is missing, malformed, or points to an invalid user, the request returns `401 Unauthorized`.
 
 If a valid JWT token is provided, the system follows the normal authentication path.
 
 ## How It Works (Code References)
 
-- `src/app/config/base.py`: reads `APP_ENV` into `AppSettings.ENV`.
-- `src/app/domain/accounts/guards.py`: `DevJWTCookieAuthenticationMiddleware` injects the dev user when `APP_ENV=development` and no token is present.
-- `examples/dev_e2e_httpx.py`: dev E2E script using `httpx` to exercise the todo API.
+- `src/app/domain/accounts/guards.py`: `DevJWTCookieAuthenticationMiddleware` resolves user by `X-Dev-User-Id` when `APP_ENV=development` and no token is present.
+- `examples/dev_e2e_httpx.py`: dev E2E script using `httpx` with `X-Dev-User-Id`.
 
 ## Run the E2E Script
 
@@ -36,6 +34,7 @@ make dev
 2) Run the script:
 
 ```bash
+DEV_E2E_USER_ID=<existing_user_uuid> \
 uv run python examples/dev_e2e_httpx.py
 ```
 
@@ -54,10 +53,12 @@ You should see:
 - `APP_ENV`: must be `development` to enable the bypass.
 - `APP_URL`: base URL for the API (default `http://localhost:8089`).
 - `DEV_E2E_TIMEOUT`: request timeout in seconds (default `10`).
+- `DEV_E2E_USER_ID`: required user UUID for dev-mode bypass.
 
 ## Notes / Troubleshooting
 
-- If you see `401 Unauthorized`, confirm `APP_ENV=development` and that the request has no invalid token attached.
+- If you see `401 Unauthorized`, confirm `APP_ENV=development` and provide a valid `X-Dev-User-Id`.
+- If `DEV_E2E_USER_ID` is missing or invalid, the E2E script exits early.
 - If the list call does not return the created todo, check the database or rerun the script (it deletes the created todo on success).
 
 ## Safety

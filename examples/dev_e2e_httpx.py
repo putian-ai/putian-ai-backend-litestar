@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
+from uuid import UUID
 
 import httpx
 
-
 DEFAULT_BASE_URL = "http://localhost:8089"
+DEV_USER_ID_HEADER = "X-Dev-User-Id"
 
 
 def _print_ok(message: str) -> None:
@@ -49,14 +50,28 @@ def _extract_items(payload: Any) -> list[dict[str, Any]]:
 def main() -> int:
     base_url = os.getenv("APP_URL", DEFAULT_BASE_URL).rstrip("/")
     timeout_seconds = float(os.getenv("DEV_E2E_TIMEOUT", "10"))
+    dev_user_id = os.getenv("DEV_E2E_USER_ID", "").strip()
 
-    with httpx.Client(base_url=base_url, timeout=timeout_seconds) as client:
+    if not dev_user_id:
+        _print_fail("missing DEV_E2E_USER_ID environment variable")
+        return 1
+    try:
+        UUID(dev_user_id)
+    except ValueError:
+        _print_fail("DEV_E2E_USER_ID must be a valid UUID")
+        return 1
+
+    with httpx.Client(
+        base_url=base_url,
+        timeout=timeout_seconds,
+        headers={DEV_USER_ID_HEADER: dev_user_id},
+    ) as client:
         health_response = client.get("/health")
         if not _expect_status(health_response, {200}):
             return 1
         _print_ok(f"health ok ({health_response.status_code})")
 
-        now = datetime.now(timezone.utc).replace(microsecond=0)
+        now = datetime.now(UTC).replace(microsecond=0)
         start_time = now + timedelta(minutes=5)
         end_time = start_time + timedelta(minutes=30)
         create_payload = {
