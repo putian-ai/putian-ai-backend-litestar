@@ -1,6 +1,6 @@
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
-from datetime import datetime
 
 import structlog
 from advanced_alchemy.filters import FilterTypes
@@ -10,6 +10,8 @@ from litestar.di import Provide
 from litestar.params import Dependency, Parameter
 
 import app.db.models as m
+from app.domain.calendar_sync.deps import provide_calendar_sync_service
+from app.domain.calendar_sync.services import CalendarSyncService
 from app.domain.todo.deps import provide_tag_service, provide_todo_service
 from app.domain.todo.schemas import TagCreate, TagModel, TodoCreate, TodoModel
 from app.domain.todo.services import TagService, TodoService
@@ -26,6 +28,7 @@ class TodoController(Controller):
     dependencies = {
         "todo_service": Provide(provide_todo_service),
         "tag_service": Provide(provide_tag_service),
+        "calendar_sync_service": Provide(provide_calendar_sync_service),
     } | create_filter_dependencies(
         {
             "id_filter": UUID,
@@ -76,16 +79,23 @@ class TodoController(Controller):
         if not include_series_items:
             additional_filters.append(m.Todo.series_id.is_(None))
 
-        all_filters = [user_filter] + additional_filters + list(filters)
+        all_filters = [user_filter, *additional_filters, *list(filters)]
         results, total = await todo_service.list_and_count(*all_filters)
         return todo_service.to_schema(data=results, total=total, schema_type=TodoModel, filters=filters)
 
     @post(path="/", operation_id="create_todo")
-    async def create_todo(self, current_user: m.User, data: TodoCreate, todo_service: TodoService) -> TodoModel:
+    async def create_todo(
+        self,
+        current_user: m.User,
+        data: TodoCreate,
+        todo_service: TodoService,
+        calendar_sync_service: Annotated[CalendarSyncService, Dependency(skip_validation=True)],
+    ) -> TodoModel:
         """Create a new todo item."""
         todo_dict = data.to_dict()
         todo_dict["user_id"] = current_user.id
         todo_model = await todo_service.create(todo_dict)
+        await calendar_sync_service.sync_todo_after_upsert(todo=todo_model)
         return todo_service.to_schema(todo_model, schema_type=TodoModel)
 
     @get(path="/{todo_id:uuid}", operation_id="get_todo")
@@ -100,22 +110,35 @@ class TodoController(Controller):
             return f"Error retrieving todo item {todo_id}: {e!s}"
 
     @patch(path="/{todo_id:uuid}", operation_id="update_todo")
-    async def update_todo(self, todo_id: UUID, data: TodoCreate, todo_service: TodoService) -> str | TodoModel:
+    async def update_todo(
+        self,
+        todo_id: UUID,
+        data: TodoCreate,
+        todo_service: TodoService,
+        calendar_sync_service: Annotated[CalendarSyncService, Dependency(skip_validation=True)],
+    ) -> str | TodoModel:
         """Update a specific todo item by ID."""
         todo = await todo_service.get(todo_id)
         if not todo:
             return f"Todo item {todo_id} not found."
         todo_dict = data.to_dict()
         updated_todo = await todo_service.update(item_id=todo_id, data=todo_dict)
+        await calendar_sync_service.sync_todo_after_upsert(todo=updated_todo)
         return todo_service.to_schema(updated_todo, schema_type=TodoModel)
 
     @delete(path="/{todo_id:uuid}", operation_id="delete_todo", status_code=200)
-    async def delete_todo(self, todo_id: UUID, todo_service: TodoService) -> str | TodoModel:
+    async def delete_todo(
+        self,
+        todo_id: UUID,
+        todo_service: TodoService,
+        calendar_sync_service: Annotated[CalendarSyncService, Dependency(skip_validation=True)],
+    ) -> str | TodoModel:
         try:
             """Delete a specific todo item by ID."""
             todo = await todo_service.get(todo_id)
             if not todo:
                 return f"Todo item {todo_id} not found."
+            await calendar_sync_service.sync_todo_before_delete(todo=todo)
             await todo_service.delete(todo_id)
             return todo_service.to_schema(todo, schema_type=TodoModel)
         except (ValueError, RuntimeError, AttributeError) as e:

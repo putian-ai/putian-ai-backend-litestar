@@ -113,19 +113,35 @@ class DatabaseSettings:
                 See Also https://github.com/sqlalchemy/sqlalchemy/blob/14bfbadfdf9260a1c40f63b31641b27fe9de12a0/lib/sqlalchemy/dialects/postgresql/asyncpg.py#L934  pylint: disable=line-too-long
                 """
 
-                def encoder(bin_value: bytes) -> bytes:
-                    return b"\x01" + encode_json(bin_value)
+                def _encode_to_bytes(value: Any) -> bytes:
+                    if isinstance(value, bytes):
+                        return value
+                    if isinstance(value, bytearray):
+                        return bytes(value)
+                    encoded = encode_json(value)
+                    if isinstance(encoded, bytes):
+                        return encoded
+                    return str(encoded).encode("utf-8")
 
-                def decoder(bin_value: bytes) -> Any:
+                def jsonb_encoder(value: Any) -> bytes:
+                    return b"\x01" + _encode_to_bytes(value)
+
+                def jsonb_decoder(bin_value: bytes) -> Any:
                     # the byte is the \x01 prefix for jsonb used by PostgreSQL.
                     # asyncpg returns it when format='binary'
                     return decode_json(bin_value[1:])
 
+                def json_encoder(value: Any) -> bytes:
+                    return _encode_to_bytes(value)
+
+                def json_decoder(bin_value: bytes) -> Any:
+                    return decode_json(bin_value)
+
                 dbapi_connection.await_(
                     dbapi_connection.driver_connection.set_type_codec(
                         "jsonb",
-                        encoder=encoder,
-                        decoder=decoder,
+                        encoder=jsonb_encoder,
+                        decoder=jsonb_decoder,
                         schema="pg_catalog",
                         format="binary",
                     ),
@@ -133,8 +149,8 @@ class DatabaseSettings:
                 dbapi_connection.await_(
                     dbapi_connection.driver_connection.set_type_codec(
                         "json",
-                        encoder=encoder,
-                        decoder=decoder,
+                        encoder=json_encoder,
+                        decoder=json_decoder,
                         schema="pg_catalog",
                         format="binary",
                     ),
@@ -416,6 +432,28 @@ class AISettings:
 
 
 @dataclass
+class CalendarSettings:
+    """Calendar synchronization configuration."""
+
+    GOOGLE_CLIENT_ID: str = field(default_factory=get_env("GOOGLE_CLIENT_ID", ""))
+    GOOGLE_CLIENT_SECRET: str = field(default_factory=get_env("GOOGLE_CLIENT_SECRET", ""))
+    GOOGLE_REDIRECT_URI: str = field(
+        default_factory=get_env("GOOGLE_REDIRECT_URI", "http://127.0.0.1:8089/api/calendar/providers/google/callback"),
+    )
+    GOOGLE_OAUTH_SCOPES: list[str] = field(
+        default_factory=get_env(
+            "GOOGLE_OAUTH_SCOPES",
+            ["https://www.googleapis.com/auth/calendar"],
+            list[str],
+        ),
+    )
+    GOOGLE_STATE_TTL_SECONDS: int = field(default_factory=get_env("GOOGLE_STATE_TTL_SECONDS", 900))
+    GOOGLE_WEBHOOK_TOKEN: str = field(default_factory=get_env("GOOGLE_WEBHOOK_TOKEN", ""))
+    SYNC_LOOKBACK_DAYS: int = field(default_factory=get_env("CALENDAR_SYNC_LOOKBACK_DAYS", 90))
+    SYNC_LOOKAHEAD_DAYS: int = field(default_factory=get_env("CALENDAR_SYNC_LOOKAHEAD_DAYS", 365))
+
+
+@dataclass
 class SMTPSettings:
     """SMTP Email configurations."""
 
@@ -444,6 +482,7 @@ class Settings:
     log: LogSettings = field(default_factory=LogSettings)
     s3: S3Settings = field(default_factory=S3Settings)
     ai: AISettings = field(default_factory=AISettings)
+    calendar: CalendarSettings = field(default_factory=CalendarSettings)
     smtp: SMTPSettings = field(default_factory=SMTPSettings)
 
     @classmethod

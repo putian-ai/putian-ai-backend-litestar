@@ -97,6 +97,7 @@ The OpenAI Agents SDK integration provides several key advantages:
 - **[Agent Tool Implementation](AGENT_TOOLING.md)** - How tools are organized across CRUD, scheduling, and supporting agents
 - **[AGENTS.md](AGENTS.md)** - Collaboration and contribution guidelines for the todo agents
 - **[Agent Tools Architecture Guide](docs/AGENT_TOOLS_ARCHITECTURE_GUIDE.md)** - Tool modules, agent variants, and API routing via `agent_name`
+- **[Google Calendar Sync Development](docs/GOOGLE_CALENDAR_SYNC_DEVELOPMENT.md)** - Google OAuth、双向同步、最小联调与排障指南
 
 ### Implementation Details
 

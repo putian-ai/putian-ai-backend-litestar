@@ -65,6 +65,13 @@ class ApplicationCore(InitPluginProtocol, CLIPluginProtocol):
         from app.domain.accounts.services_email_verification import EmailVerificationService
         from app.domain.agent_sessions.controllers import AgentSessionController, SessionMessageController
         from app.domain.agent_sessions.services import AgentSessionService, SessionMessageService
+        from app.domain.calendar_sync.controllers import CalendarSyncController
+        from app.domain.calendar_sync.services import (
+            CalendarConnectionService,
+            CalendarEventService,
+            CalendarSyncService,
+            TodoCalendarLinkService,
+        )
         from app.domain.memory.queue import MemoryQueueService, start_memory_worker, stop_memory_worker
         from app.domain.memory.services import MemoryService
         from app.domain.quota.services import UserUsageQuotaService
@@ -112,6 +119,7 @@ class ApplicationCore(InitPluginProtocol, CLIPluginProtocol):
                 UserRoleController,
                 TodoController,
                 TodoAgentController,
+                CalendarSyncController,
                 AgentSessionController,
                 SessionMessageController,
             ],
@@ -134,6 +142,10 @@ class ApplicationCore(InitPluginProtocol, CLIPluginProtocol):
                 "TodoService": TodoService,
                 "TagService": TagService,
                 "TodoAgentService": TodoAgentService,
+                "CalendarConnectionService": CalendarConnectionService,
+                "CalendarEventService": CalendarEventService,
+                "TodoCalendarLinkService": TodoCalendarLinkService,
+                "CalendarSyncService": CalendarSyncService,
                 "MemoryService": MemoryService,
                 "MemoryQueueService": MemoryQueueService,
                 "UserUsageQuotaService": UserUsageQuotaService,

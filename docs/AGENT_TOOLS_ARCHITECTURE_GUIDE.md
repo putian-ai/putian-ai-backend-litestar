@@ -2,6 +2,10 @@
 
 本文档描述本项目 AI Agents 的能力边界、角色分工、会话与流式行为，以及对外 API 概览。
 
+## 相关文档
+- Google 日历同步开发指南：`docs/GOOGLE_CALENDAR_SYNC_DEVELOPMENT.md`
+- 统一日历同步执行计划：`.agents/exec-plans/calendar-sync-google-icloud-caldav.md`
+
 ## 目标与能力概览
 - AI Agent = 大模型 + 工具，负责理解用户意图并调用工具完成待办管理与时间安排。
 - 重点能力：待办创建/更新/删除、日程分析、冲突避免、配额查询、会话记忆。
