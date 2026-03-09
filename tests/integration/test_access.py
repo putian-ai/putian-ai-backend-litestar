@@ -1,6 +1,8 @@
 import pytest
 from httpx import AsyncClient
 
+from app.domain.accounts.controllers import access
+
 pytestmark = pytest.mark.anyio
 
 
@@ -40,3 +42,28 @@ async def test_user_logout(client: AsyncClient, username: str, password: str) ->
     # the user can no longer access the /me route.
     me_response = await client.get("/api/me")
     assert me_response.status_code == 401
+
+
+async def test_user_signup_in_development_skips_email_verification(
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(access.settings.app, "ENV", "development")
+
+    email = "dev-signup@example.com"
+    password = "Test_Password4!"
+
+    signup_response = await client.post(
+        "/api/access/signup",
+        json={"email": email, "password": password, "name": "Dev Signup"},
+    )
+
+    assert signup_response.status_code == 201
+    assert signup_response.json()["isVerified"] is True
+
+    login_response = await client.post(
+        "/api/access/login",
+        data={"username": email, "password": password},
+    )
+
+    assert login_response.status_code == 201

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated
 
 import structlog
@@ -11,6 +12,7 @@ from litestar.di import Provide
 from litestar.enums import RequestEncodingType
 from litestar.params import Body, Parameter
 
+from app.config.base import get_settings
 from app.domain.accounts import urls
 from app.domain.accounts.deps import provide_users_service, provide_email_verification_service
 from app.domain.accounts.guards import auth, requires_active_user
@@ -24,6 +26,9 @@ if TYPE_CHECKING:
 
     from app.db import models as m
     from app.domain.accounts.services import UserService
+
+
+settings = get_settings()
 
 
 class AccessController(Controller):
@@ -69,11 +74,15 @@ class AccessController(Controller):
         email_verification_service: EmailVerificationService,
         data: AccountRegister,
     ) -> User:
-        """User Signup with email verification."""
+        """User signup with environment-aware email verification flow."""
         user_data = data.to_dict()
+        is_development = settings.app.ENV.lower() == "development"
 
-        # Set user as unverified by default
-        user_data["is_verified"] = False
+        if is_development:
+            user_data["is_verified"] = True
+            user_data["verified_at"] = datetime.now(UTC).date()
+        else:
+            user_data["is_verified"] = False
 
         # Add default role
         role_obj = await roles_service.get_one_or_none(slug=slugify(users_service.default_role))
@@ -83,16 +92,15 @@ class AccessController(Controller):
         # Create user
         user = await users_service.create(user_data)
 
-        # Create verification token
-        verification_token = await email_verification_service.create_verification_token(user.id)
-
-        # Send verification email
-        base_url = f"{request.base_url.scheme}://{request.base_url.netloc}"
-        email_sent = await users_service.send_verification_email(
-            user=user,
-            verification_token=verification_token.token,
-            base_url=base_url
-        )
+        email_sent = False
+        if not is_development:
+            verification_token = await email_verification_service.create_verification_token(user.id)
+            base_url = f"{request.base_url.scheme}://{request.base_url.netloc}"
+            email_sent = await users_service.send_verification_email(
+                user=user,
+                verification_token=verification_token.token,
+                base_url=base_url,
+            )
 
         # Emit user creation event
         request.app.emit(event_id="user_created",
