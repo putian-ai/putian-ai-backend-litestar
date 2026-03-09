@@ -406,6 +406,48 @@ class AISettings:
     DEEPSEEK_BASE_URL: str | None = field(
         default_factory=get_env("DEEPSEEK_BASE_URL", None))
     """DeepSeek Base URL for API endpoints"""
+    SILICON_FLOW_API_KEY: str | None = field(
+        default_factory=get_env("SILICON_FLOW_API_KEY", None))
+    """SiliconFlow API Key for embedding and rerank providers."""
+    LLM_BINDING_HOST: str = field(
+        default_factory=get_env("LLM_BINDING_HOST", "https://api.deepseek.com"))
+    """OpenAI-compatible endpoint for LLM chat completion."""
+    LLM_MODEL: str = field(default_factory=get_env("LLM_MODEL", "deepseek-chat"))
+    """Model name for LightRAG LLM generation."""
+    EMBEDDING_BINDING_HOST: str = field(
+        default_factory=get_env("EMBEDDING_BINDING_HOST", "https://api.siliconflow.cn/v1"))
+    """OpenAI-compatible endpoint for embedding generation."""
+    EMBEDDING_MODEL: str = field(default_factory=get_env("EMBEDDING_MODEL", "BAAI/bge-m3"))
+    """Embedding model name for LightRAG indexing and retrieval."""
+    EMBEDDING_DIM: int = field(default_factory=get_env("EMBEDDING_DIM", 1024))
+    """Embedding vector dimension used by LightRAG."""
+    MAX_EMBED_TOKENS: int = field(default_factory=get_env("MAX_EMBED_TOKENS", 8192))
+    """Maximum token size for each embedding call."""
+    RERANK_BINDING_HOST: str = field(
+        default_factory=get_env("RERANK_BINDING_HOST", "https://api.siliconflow.cn/v1/rerank"))
+    """Endpoint for rerank model calls."""
+    RERANK_MODEL: str = field(default_factory=get_env("RERANK_MODEL", "BAAI/bge-reranker-v2-m3"))
+    """Rerank model name reserved for LightRAG optimization."""
+    RERANK_TOP_N: int = field(default_factory=get_env("RERANK_TOP_N", 20))
+    """Maximum candidates kept after reranking."""
+    RAG_ENABLED: bool = field(default_factory=get_env("RAG_ENABLED", True))
+    """Enable RAG APIs and indexing pipeline."""
+    RAG_MAX_UPLOAD_BYTES: int = field(default_factory=get_env("RAG_MAX_UPLOAD_BYTES", 1048576))
+    """Maximum upload size for a single plain-text file."""
+    RAG_WORKING_DIR_ROOT: str = field(default_factory=get_env("RAG_WORKING_DIR_ROOT", "data/rag"))
+    """Base directory for raw files and LightRAG workspaces."""
+    RAG_QUEUE_ENABLED: bool = field(default_factory=get_env("RAG_QUEUE_ENABLED", True))
+    """Enable async queue for RAG indexing jobs."""
+    RAG_QUEUE_URL: str = field(default_factory=get_env("RAG_QUEUE_URL", "redis://localhost:6379/0"))
+    """Redis URL for RAG indexing queue."""
+    RAG_QUEUE_NAME: str = field(default_factory=get_env("RAG_QUEUE_NAME", "rag_index_jobs"))
+    """Queue name used for RAG indexing jobs."""
+    RAG_QUEUE_MAX_RETRIES: int = field(default_factory=get_env("RAG_QUEUE_MAX_RETRIES", 3))
+    """Maximum retry attempts for RAG indexing jobs."""
+    RAG_QUEUE_JOB_TIMEOUT: int = field(default_factory=get_env("RAG_QUEUE_JOB_TIMEOUT", 600))
+    """Timeout in seconds for each RAG indexing job."""
+    RAG_QUEUE_WORKER_ENABLED: bool = field(default_factory=get_env("RAG_QUEUE_WORKER_ENABLED", True))
+    """Enable in-process RAG indexing worker."""
     MEMORY_ENABLED: bool = field(default_factory=get_env("MEMORY_ENABLED", True))
     """Enable memory pipeline for agent runs."""
     MEMORY_MAX_BULLETS: int = field(

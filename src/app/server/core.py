@@ -75,6 +75,9 @@ class ApplicationCore(InitPluginProtocol, CLIPluginProtocol):
         from app.domain.memory.queue import MemoryQueueService, start_memory_worker, stop_memory_worker
         from app.domain.memory.services import MemoryService
         from app.domain.quota.services import UserUsageQuotaService
+        from app.domain.rag.controllers import RagController
+        from app.domain.rag.queue import start_rag_worker, stop_rag_worker
+        from app.domain.rag.services import RagDocumentService
         from app.domain.system.controllers import SystemController
         from app.domain.todo.controllers import TodoController
         from app.domain.todo.services import TagService, TodoService
@@ -120,6 +123,7 @@ class ApplicationCore(InitPluginProtocol, CLIPluginProtocol):
                 TodoController,
                 TodoAgentController,
                 CalendarSyncController,
+                RagController,
                 AgentSessionController,
                 SessionMessageController,
             ],
@@ -149,6 +153,7 @@ class ApplicationCore(InitPluginProtocol, CLIPluginProtocol):
                 "MemoryService": MemoryService,
                 "MemoryQueueService": MemoryQueueService,
                 "UserUsageQuotaService": UserUsageQuotaService,
+                "RagDocumentService": RagDocumentService,
             },
         )
         # exception handling
@@ -164,8 +169,8 @@ class ApplicationCore(InitPluginProtocol, CLIPluginProtocol):
             [account_signals.user_created_event_handler],
         )
         # lifecycle hooks
-        app_config.on_startup.append(start_memory_worker)
-        app_config.on_shutdown.append(stop_memory_worker)
+        app_config.on_startup.extend([start_memory_worker, start_rag_worker])
+        app_config.on_shutdown.extend([stop_memory_worker, stop_rag_worker])
         return app_config
 
     def _cache_key_builder(self, request: Request) -> str:

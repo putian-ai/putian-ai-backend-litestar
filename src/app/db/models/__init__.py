@@ -6,6 +6,7 @@ from .importance import Importance
 from .memory import Memory
 from .oauth_account import UserOauthAccount
 from .password_reset_token import PasswordResetToken
+from .rag_document import RagDocument
 from .role import Role
 from .session_message import MessageRole, SessionMessage
 from .tag import Tag
@@ -26,6 +27,7 @@ __all__ = (
     "Memory",
     "MessageRole",
     "PasswordResetToken",
+    "RagDocument",
     "Role",
     "SessionMessage",
     "Tag",

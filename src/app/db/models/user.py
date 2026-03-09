@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from .memory import Memory
     from .oauth_account import UserOauthAccount
     from .password_reset_token import PasswordResetToken
+    from .rag_document import RagDocument
     from .tag import Tag
     from .todo import Todo
     from .user_role import UserRole
@@ -72,6 +73,12 @@ class User(UUIDAuditBase):
         cascade="all, delete-orphan",
     )
     memories: Mapped[list[Memory]] = relationship(
+        back_populates="user",
+        lazy="selectin",
+        uselist=True,
+        cascade="all, delete-orphan",
+    )
+    rag_documents: Mapped[list[RagDocument]] = relationship(
         back_populates="user",
         lazy="selectin",
         uselist=True,

@@ -1,15 +1,15 @@
+import os
 from collections.abc import AsyncGenerator, AsyncIterator
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 from advanced_alchemy.base import UUIDAuditBase
 from advanced_alchemy.utils.fixtures import open_fixture_async
+from dotenv import dotenv_values
 from httpx import AsyncClient
 from litestar import Litestar
 from litestar.testing import AsyncTestClient
-from pytest_databases.docker.postgres import PostgresService
-from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -19,27 +19,53 @@ from app.db.models import User
 from app.domain.accounts.guards import auth
 from app.domain.accounts.services import RoleService, UserService
 
+if TYPE_CHECKING:
+    from pytest_databases.docker.postgres import PostgresService
+
 here = Path(__file__).parent
 pytestmark = pytest.mark.anyio
 
 
+def _resolve_integration_database_url() -> str | None:
+    """Resolve a Postgres URL for integration tests without docker fixture."""
+    candidates = [
+        os.getenv("INTEGRATION_DATABASE_URL"),
+        os.getenv("TEST_DATABASE_URL"),
+        dotenv_values(".env.testing").get("INTEGRATION_DATABASE_URL"),
+        dotenv_values(".env.testing").get("TEST_DATABASE_URL"),
+    ]
+    for candidate in candidates:
+        if not candidate:
+            continue
+        value = str(candidate).strip()
+        if value.startswith("postgresql+asyncpg://"):
+            return value
+    return None
+
+
 @pytest.fixture(name="engine")
-async def fx_engine(postgres_service: PostgresService) -> AsyncEngine:
+async def fx_engine(request: pytest.FixtureRequest) -> AsyncEngine:
     """Postgresql instance for end-to-end testing.
 
     Returns:
         Async SQLAlchemy engine instance.
     """
+    database_url = _resolve_integration_database_url()
+    if database_url:
+        return create_async_engine(
+            database_url,
+            echo=False,
+            poolclass=NullPool,
+        )
+
+    postgres_service = request.getfixturevalue("postgres_service")
+    postgres_service = cast("PostgresService", postgres_service)
+    fallback_url = (
+        f"postgresql+asyncpg://{postgres_service.user}:{postgres_service.password}"
+        f"@{postgres_service.host}:{postgres_service.port}/{postgres_service.database}"
+    )
     return create_async_engine(
-        URL(
-            drivername="postgresql+asyncpg",
-            username=postgres_service.user,
-            password=postgres_service.password,
-            host=postgres_service.host,
-            port=postgres_service.port,
-            database=postgres_service.database,
-            query={},  # type:ignore[arg-type]
-        ),
+        fallback_url,
         echo=False,
         poolclass=NullPool,
     )

@@ -183,3 +183,6 @@ requirements.txt
 # conversations
 conversations.db*
 workflow.md
+
+# runtime-generated RAG data
+data/rag/
