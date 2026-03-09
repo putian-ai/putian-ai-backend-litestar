@@ -18,6 +18,12 @@ If the header is missing, malformed, or points to an invalid user, the request r
 
 If a valid JWT token is provided, the system follows the normal authentication path.
 
+For `POST /api/access/signup`, development mode also skips the email verification loop:
+
+- New users are created with `is_verified=true`.
+- `verified_at` is set immediately.
+- No verification token or verification email is required before login.
+
 ## How It Works (Code References)
 
 - `src/app/domain/accounts/guards.py`: `DevJWTCookieAuthenticationMiddleware` resolves user by `X-Dev-User-Id` when `APP_ENV=development` and no token is present.
