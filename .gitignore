@@ -186,3 +186,6 @@ workflow.md
 
 # runtime-generated RAG data
 data/rag/
+
+# Codex local skills
+/.codex/skills/
